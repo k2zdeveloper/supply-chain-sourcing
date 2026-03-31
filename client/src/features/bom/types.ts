@@ -84,6 +84,8 @@ export type AlternativePart = {
 };
 
 export type QuoteLineItem = {
+  risk_level: "low" | "high" | "critical";
+  manufacturer: string;
   id: string;
   requested_mpn: string;
   requested_qty: number;

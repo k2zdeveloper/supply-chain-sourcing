@@ -268,6 +268,7 @@ export default function BomBuilder() {
       if (!activeWorkspaceId) throw new Error("Workspace context is missing.");
       return requestWorkspaceQuotation(activeWorkspaceId, partIds);
     },
+    // ⚡ STRICT MODIFICATION: Route accurately reflects the App.tsx configuration
     onSuccess: (quoteId: string) => navigate(`/dashboard/quotes/${quoteId}`),
     onError: (err: Error) => showNotification('Generation Failed', err.message || 'Could not generate quote.', 'error')
   });

@@ -5,7 +5,7 @@ import {
   CheckCircle2, AlertTriangle, XCircle, PackageSearch, 
   Check, X, Loader2, ChevronLeft, Printer, RefreshCcw, 
   Clock, AlertCircle, ShieldCheck, Zap, Activity, 
-  Search, PackageX, Ban 
+  Search, PackageX, Ban, ArrowUpRight, FileText
 } from 'lucide-react';
 import { z } from 'zod';
 import { pdf } from '@react-pdf/renderer';
@@ -16,7 +16,7 @@ import { QuoteDocument } from './components/QuotePDF';
 import type { QuoteDetails } from './types'; 
 
 // ============================================================================
-// COMPONENT TYPES
+// STRICT ENTERPRISE TYPES
 // ============================================================================
 type AppNotification = { 
   title: string; 
@@ -58,6 +58,7 @@ export default function QuoteReview() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
+  // --- UI State ---
   const [resolvingId, setResolvingId] = useState<string | null>(null);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState<boolean>(false);
   const [isFinalizeModalOpen, setIsFinalizeModalOpen] = useState<boolean>(false);
@@ -75,6 +76,7 @@ export default function QuoteReview() {
     setTimeout(() => setNotification(prev => prev?.title === title ? null : prev), 6000);
   }, []);
 
+  // --- Queries ---
   const { data: quote, isLoading, isError } = useQuery<QuoteDetails, Error>({
     queryKey: ['quote_review', quoteId],
     queryFn: () => fetchQuoteDetails(quoteId!),
@@ -84,6 +86,7 @@ export default function QuoteReview() {
 
   const isQuoteLocked = quote?.status === 'FINALIZED' || quote?.status === 'REJECTED';
 
+  // Extract pending MPNs to fetch live alternatives in a single batch
   const pendingMpns = useMemo(() => {
     if (!quote || isQuoteLocked) return [];
     const mpns = quote.line_items
@@ -99,15 +102,19 @@ export default function QuoteReview() {
     staleTime: Infinity, 
   });
 
+  // --- Mutations ---
+  
+  // 1. Line Item Resolution (Optimistic UI Update)
   const { mutate: handleResolution } = useMutation({
     mutationFn: ({ lineId, altId, decision, altData }: { lineId: string, altId?: string, decision: ResolutionDecision, altData?: any }) => 
       resolveAlternative(quoteId!, lineId, altId, decision, altData),
     
-    onMutate: async ({ lineId, altId, decision, altData }) => {
+    onMutate: async ({ lineId, decision, altData }) => {
       setResolvingId(lineId);
       await queryClient.cancelQueries({ queryKey: ['quote_review', quoteId] });
       const previousQuote = queryClient.getQueryData<QuoteDetails>(['quote_review', quoteId]);
 
+      // Optimistically update the cache for instant user feedback
       queryClient.setQueryData(['quote_review', quoteId], (old: any) => {
         if (!old) return old;
         return {
@@ -121,7 +128,7 @@ export default function QuoteReview() {
                 ...(decision === 'ACCEPTED' && altData ? {
                   unit_cost: altData.unit_cost,
                   requested_mpn: altData.mpn || altData.part_number || line.requested_mpn,
-                  fulfilled_qty: altData.available_qty || 0 // ⚡ Optimistic Stock Injection
+                  fulfilled_qty: altData.available_qty || 0
                 } : {})
               };
             }
@@ -143,9 +150,8 @@ export default function QuoteReview() {
     
     onSuccess: () => {
       setResolvingId(null);
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ['quote_review', quoteId] });
-      }, 1500);
+      // Re-fetch in the background to ensure perfect sync
+      setTimeout(() => queryClient.invalidateQueries({ queryKey: ['quote_review', quoteId] }), 1500);
     }
   });
 
@@ -153,19 +159,22 @@ export default function QuoteReview() {
     handleResolution({ lineId, altId, decision, altData });
   }, [handleResolution]);
 
+  // 2. Finalize Quote & Route to PO Generator
   const { mutate: submitFinalQuote, isPending: isFinalizing } = useMutation({
     mutationFn: () => finalizeQuote(quoteId!),
     onSuccess: () => {
-      showNotification('Quote Finalized', 'Order moved to procurement.', 'success');
+      showNotification('Quote Finalized', 'Proceeding to Purchase Order configuration...', 'success');
       setIsFinalizeModalOpen(false);
-      setTimeout(() => navigate('/dashboard/orders', { replace: true }), 1500);
+      // ⚡ STRICT APP ROUTING: Immediately pass state to PO generator
+      setTimeout(() => navigate(`/dashboard/quotes/${quoteId}/po`), 800);
     },
     onError: (err: Error) => {
-      showNotification('Finalization Failed', err);
+      showNotification('Finalization Failed', err, 'error');
       setIsFinalizeModalOpen(false);
     }
   });
 
+  // 3. Reject Quote completely
   const { mutate: submitRejectQuote, isPending: isRejecting } = useMutation({
     mutationFn: () => rejectQuote(quoteId!),
     onSuccess: () => {
@@ -179,6 +188,7 @@ export default function QuoteReview() {
     }
   });
 
+  // --- Data Processing Engine ---
   const calculations = useMemo<FinancialSummary>(() => {
     if (!quote) return { subtotal: 0, shipping: 0, tax_amount: 0, discount: 0, final_total: 0 };
     const subtotal = quote.line_items.reduce((acc, item) => {
@@ -194,7 +204,7 @@ export default function QuoteReview() {
   }, [quote]);
 
   const resolutionMetrics = useMemo(() => {
-    if (!quote) return { total: 0, resolved: 0, requiresAttention: false };
+    if (!quote) return { total: 0, resolved: 0, percent: 0, requiresAttention: false };
     const total = quote.line_items.length;
     const resolved = quote.line_items.filter(item => item.status === 'MATCHED' || item.user_decision !== 'PENDING').length;
     return { 
@@ -226,6 +236,7 @@ export default function QuoteReview() {
     }
   };
 
+  // --- Render States ---
   if (isLoading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center min-h-[calc(100vh-3.5rem)] bg-slate-50">
@@ -255,7 +266,7 @@ export default function QuoteReview() {
       
       {/* Toast Notification */}
       {notification && (
-        <div className="fixed bottom-4 right-4 md:bottom-24 md:right-6 z-[100] animate-in slide-in-from-bottom-5 fade-in duration-300 w-[calc(100%-2rem)] md:w-auto">
+        <div className="fixed bottom-24 right-4 md:right-6 z-[100] animate-in slide-in-from-bottom-5 fade-in duration-300">
           <div className={`bg-white border-l-4 p-3 rounded-lg shadow-xl md:min-w-[280px] flex items-start gap-2.5 w-full ring-1 ring-slate-900/5 ${notification.type === 'success' ? 'border-emerald-500' : 'border-red-500'}`}>
             {notification.type === 'success' ? <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" /> : <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />}
             <div className="flex-1 min-w-0">
@@ -267,11 +278,29 @@ export default function QuoteReview() {
         </div>
       )}
 
+      {/* FINALIZATION MODAL */}
+      {isFinalizeModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-in zoom-in-95">
+            <h3 className="text-lg font-extrabold text-slate-900 mb-2 tracking-tight">Finalize Quotation?</h3>
+            <p className="text-xs text-slate-500 font-medium mb-6 leading-relaxed">
+              This action locks current pricing and inventory availability. You will be redirected to configure the Purchase Order.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setIsFinalizeModalOpen(false)} className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors">Cancel</button>
+              <button onClick={() => submitFinalQuote()} disabled={isFinalizing} className="px-6 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg shadow-sm hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50">
+                {isFinalizing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm & Generate PO'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Dashboard Header */}
       <header className="bg-white border-b border-slate-200/60 px-4 md:px-6 py-3 shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-3 z-20 sticky top-0">
         <div>
-          <button onClick={() => navigate('/dashboard/projects')} className="text-[10px] font-bold text-slate-400 hover:text-slate-900 flex items-center gap-1 mb-1 transition-colors focus:outline-none uppercase tracking-wider">
-            <ChevronLeft className="w-3 h-3" /> Workspace
+          <button onClick={() => navigate('/dashboard/quotes')} className="text-[10px] font-bold text-slate-400 hover:text-slate-900 flex items-center gap-1 mb-1 transition-colors focus:outline-none uppercase tracking-wider">
+            <ChevronLeft className="w-3 h-3" /> Inbox
           </button>
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-xl font-extrabold tracking-tight text-slate-900">
@@ -287,23 +316,30 @@ export default function QuoteReview() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <button onClick={() => window.location.reload()} className="flex-1 sm:flex-none justify-center text-xs font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 hover:text-slate-900 px-3 py-2 rounded-lg transition-all shadow-sm focus:outline-none flex items-center gap-1.5">
-            <RefreshCcw className="w-3.5 h-3.5 text-slate-400" /> <span className="hidden sm:inline">Refresh</span>
-          </button>
-          
-          <button 
-            onClick={handleDownloadPDF} 
-            disabled={isExporting}
-            className="flex-1 sm:flex-none justify-center text-xs font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 hover:text-slate-900 px-3 py-2 rounded-lg transition-all shadow-sm focus:outline-none flex items-center gap-1.5 disabled:opacity-50"
-          >
-            {isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-400" /> : <Printer className="w-3.5 h-3.5 text-slate-400" />} 
-            <span className="hidden sm:inline">{isExporting ? 'Generating...' : 'Export PDF'}</span>
-          </button>
+          {quote.status === 'FINALIZED' ? (
+             <button onClick={() => navigate(`/dashboard/quotes/${quoteId}/po`)} className="flex-1 sm:flex-none justify-center bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition-all focus:outline-none flex items-center gap-2">
+               <FileText className="w-4 h-4" /> Open PO Workspace
+             </button>
+          ) : (
+            <>
+              <button onClick={() => window.location.reload()} className="flex-1 sm:flex-none justify-center text-xs font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 hover:text-slate-900 px-3 py-2 rounded-xl transition-all shadow-sm focus:outline-none flex items-center gap-1.5">
+                <RefreshCcw className="w-3.5 h-3.5 text-slate-400" /> <span className="hidden sm:inline">Refresh</span>
+              </button>
+              <button 
+                onClick={handleDownloadPDF} 
+                disabled={isExporting}
+                className="flex-1 sm:flex-none justify-center text-xs font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 hover:text-slate-900 px-3 py-2 rounded-xl transition-all shadow-sm focus:outline-none flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-400" /> : <Printer className="w-3.5 h-3.5 text-slate-400" />} 
+                <span className="hidden sm:inline">{isExporting ? 'Generating...' : 'Export PDF'}</span>
+              </button>
+            </>
+          )}
         </div>
       </header>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-auto p-3 md:p-5 lg:p-6 custom-scrollbar pb-28">
+      <main className="flex-1 overflow-auto p-3 md:p-5 lg:p-6 custom-scrollbar pb-32">
         <div className="max-w-[1600px] w-full mx-auto space-y-4 md:space-y-6">
           
           {/* Metrics & Progress Bar */}
@@ -325,8 +361,8 @@ export default function QuoteReview() {
             </div>
 
             <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-md flex flex-col justify-center relative overflow-hidden">
-              <div className="absolute right-0 top-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-xl -mr-8 -mt-8 pointer-events-none" />
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Authorized Value</p>
+              <div className="absolute right-0 top-0 w-24 h-24 bg-blue-500/10 rounded-full blur-xl -mr-8 -mt-8 pointer-events-none" />
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Quote Value</p>
               <p className="text-3xl font-black text-white font-mono tracking-tight relative z-10">{formatCurrency(calculations.final_total)}</p>
             </div>
           </div>
@@ -390,7 +426,7 @@ export default function QuoteReview() {
           </div>
 
         </div>
-      </div>
+      </main>
 
       {/* Sticky Bottom Action Bar */}
       <div className="fixed bottom-0 left-0 right-0 lg:left-[240px] bg-white/95 backdrop-blur-xl border-t border-slate-200/60 p-3 md:p-4 z-40 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.08)]">
@@ -404,7 +440,7 @@ export default function QuoteReview() {
             <button
               onClick={() => setIsRejectModalOpen(true)}
               disabled={isFinalizing || isRejecting}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50 transition-colors focus:outline-none"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-bold text-slate-500 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors focus:outline-none"
             >
               Cancel Quote
             </button>
@@ -413,7 +449,7 @@ export default function QuoteReview() {
           <button
             onClick={() => setIsFinalizeModalOpen(true)}
             disabled={resolutionMetrics.requiresAttention || isFinalizing || isQuoteLocked}
-            className="w-full sm:w-auto bg-slate-900 hover:bg-black text-white px-8 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md disabled:opacity-50 focus:outline-none flex items-center justify-center gap-2 active:scale-[0.98]"
+            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md disabled:opacity-50 focus:outline-none flex items-center justify-center gap-2 active:scale-[0.98]"
           >
             {isFinalizing ? <Loader2 className="w-4 h-4 animate-spin" /> : 
               quote.status === 'FINALIZED' ? 'PO Generated' : 
@@ -625,7 +661,7 @@ const AlternativeCard = React.memo(({ alt, targetQty, isResolving, onAccept }: A
         className={`w-full mt-auto py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 focus:outline-none border relative z-10 ${
           isOutOfStock
             ? 'bg-slate-100 text-slate-400 border-transparent cursor-not-allowed'
-            : 'bg-slate-50 hover:bg-slate-900 hover:text-white text-slate-700 border-slate-200 group-hover:border-slate-900'
+            : 'bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 border-blue-200 hover:border-blue-600 shadow-sm'
         }`}
       >
         {isResolving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : isOutOfStock ? 'No Stock Available' : 'Accept Alternative'}

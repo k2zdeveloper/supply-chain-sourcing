@@ -9,7 +9,7 @@ import {
   Globe, Cpu, BarChart3, UploadCloud, Newspaper, ArrowRight, ShoppingCart, Loader2, Clock, ShoppingBag,
   Search, CheckSquare, CreditCard, Truck, Calendar, ExternalLink, Folder,
   MapPin, Star, MoreVertical, Copy, Filter, ArrowDownUp, Zap,
-  CheckCircle2
+  CheckCircle2, FileText
 } from 'lucide-react';
 
 // ============================================================================
@@ -18,7 +18,11 @@ import {
 export type PipelinePhase = 'SOURCING' | 'ALTERNATES' | 'QUOTE_READY' | 'PAID' | 'ORDERED' | 'REJECTED';
 
 type BomPipelineSummary = {
-  id: string; 
+  id: string; // The unified route ID
+  workspaceId: string;
+  quoteId?: string;
+  poId?: string;
+  poNumber?: string;
   projectName: string; 
   partCount: number; 
   quotedValue: number; 
@@ -59,7 +63,7 @@ const getGreeting = () => {
 };
 
 // ============================================================================
-// DATA FETCHERS
+// UNIFIED DATA FETCHERS (Supabase Direct Integration)
 // ============================================================================
 const fetchMetrics = async (tenantId: string | undefined): Promise<DashboardMetrics> => {
   if (!tenantId) throw new Error('Unauthorized');
@@ -68,10 +72,82 @@ const fetchMetrics = async (tenantId: string | undefined): Promise<DashboardMetr
   return data as DashboardMetrics;
 };
 
-const fetchPipelineSummaries = async (): Promise<BomPipelineSummary[]> => {
-  const { data, error } = await supabase.rpc('get_pipeline_summaries');
-  if (error) throw new Error(error.message);
-  return data as BomPipelineSummary[];
+const fetchUnifiedPipeline = async (userId: string | undefined): Promise<BomPipelineSummary[]> => {
+  if (!userId) throw new Error('Unauthorized');
+
+  // 1. Parallel fetch all relevant tables to construct the complete pipeline
+  const [wsRes, bomRes, quoteRes, poRes] = await Promise.all([
+    supabase.from('workspaces').select('id, name, created_at, updated_at').eq('tenant_id', userId),
+    supabase.from('bom_records').select('workspace_id, target_price, quantity').eq('tenant_id', userId),
+    supabase.from('procurement_orders').select('id, workspace_id, total_value, status, updated_at').eq('tenant_id', userId),
+    supabase.from('purchase_orders').select('id, quote_id, po_number, status, grand_total, updated_at').eq('user_id', userId),
+  ]);
+
+  if (wsRes.error) throw new Error(wsRes.error.message);
+
+  // 2. Fetch Quote Line Items for Shortage tracking
+  let allLines: any[] = [];
+  if (quoteRes.data && quoteRes.data.length > 0) {
+    const quoteIds = quoteRes.data.map(q => q.id);
+    const { data: lines } = await supabase.from('quote_line_items').select('quote_id, status, user_decision').in('quote_id', quoteIds);
+    if (lines) allLines = lines;
+  }
+
+  // 3. Map into Unified Pipeline View
+  return wsRes.data.map(ws => {
+    const boms = bomRes.data?.filter(b => b.workspace_id === ws.id) || [];
+    const quote = quoteRes.data?.find(q => q.workspace_id === ws.id);
+    const po = quote ? poRes.data?.find(p => p.quote_id === quote.id) : null;
+    const qLines = quote ? allLines.filter(l => l.quote_id === quote.id) : [];
+
+    const partCount = boms.length;
+    let estValue = boms.reduce((acc, b) => acc + ((b.target_price || 0) * b.quantity), 0);
+
+    let phase: PipelinePhase = 'SOURCING';
+    let pendingAlternates = 0;
+    let quotedValue = estValue;
+    let routeId = ws.id; 
+    let lastUpdated = ws.updated_at;
+
+    // Highest Priority: Purchase Order Exists
+    if (po) {
+      phase = po.status === 'issued' ? 'PAID' : 'ORDERED';
+      quotedValue = po.grand_total;
+      routeId = po.quote_id; // Route using quote_id to hit /quotes/:id/po
+      lastUpdated = po.updated_at;
+    } 
+    // Medium Priority: Quotation Exists
+    else if (quote) {
+      routeId = quote.id;
+      quotedValue = quote.total_value;
+      lastUpdated = quote.updated_at;
+      
+      if (quote.status === 'REJECTED') {
+         phase = 'REJECTED';
+      } else if (quote.status === 'FINALIZED') {
+         phase = 'QUOTE_READY';
+      } else {
+         const hasShortages = qLines.some(l => l.status !== 'MATCHED' && l.user_decision === 'PENDING');
+         phase = hasShortages ? 'ALTERNATES' : 'QUOTE_READY';
+         pendingAlternates = qLines.filter(l => l.status !== 'MATCHED' && l.user_decision === 'PENDING').length;
+      }
+    }
+
+    return {
+      id: routeId,
+      workspaceId: ws.id,
+      quoteId: quote?.id,
+      poId: po?.id,
+      poNumber: po?.po_number,
+      projectName: ws.name,
+      partCount,
+      quotedValue,
+      phase,
+      pendingAlternates,
+      createdAt: ws.created_at,
+      lastUpdated
+    };
+  });
 };
 
 const fetchNews = async (): Promise<NewsArticle[]> => {
@@ -99,11 +175,9 @@ export default function DashboardIndex() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   
-  // Feature 2: Dynamic Greeting
   const greeting = getGreeting();
   const userName = user?.user_metadata?.full_name?.split(' ')[0] || 'there';
 
-  // State
   const [searchQuery, setSearchQuery] = useState('');
   const [phaseFilter, setPhaseFilter] = useState<string>('ALL');
   const [sortBy, setSortBy] = useState<string>('DATE_DESC');
@@ -118,8 +192,9 @@ export default function DashboardIndex() {
   });
 
   const { data: pipelines = [], isLoading: pipesLoading } = useQuery({ 
-    queryKey: ['pipelines'], 
-    queryFn: fetchPipelineSummaries, 
+    queryKey: ['pipelines', user?.id], 
+    queryFn: () => fetchUnifiedPipeline(user?.id), 
+    enabled: !!user?.id,
     staleTime: 30000 
   });
 
@@ -141,12 +216,12 @@ export default function DashboardIndex() {
       const q = searchQuery.toLowerCase().trim();
       result = result.filter(p => 
         p.projectName.toLowerCase().includes(q) || 
-        p.id.toLowerCase().includes(q)
+        p.id.toLowerCase().includes(q) ||
+        (p.poNumber && p.poNumber.toLowerCase().includes(q))
       );
     }
 
     result.sort((a, b) => {
-      // Feature 7: Pinned projects float to top
       const aPinned = pinnedProjects.has(a.id);
       const bPinned = pinnedProjects.has(b.id);
       if (aPinned && !bPinned) return -1;
@@ -184,7 +259,6 @@ export default function DashboardIndex() {
           <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 flex items-center gap-2">
             {greeting}, {userName}
           </h1>
-          {/* Feature 5: Contextual Meta Header */}
           <div className="flex flex-wrap items-center gap-2 mt-1.5">
             <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500 flex items-center gap-1"><MapPin className="w-3 h-3 text-slate-400"/> Nasugbu, Calabarzon</span>
             <span className="w-1 h-1 rounded-full bg-slate-300"></span>
@@ -192,7 +266,6 @@ export default function DashboardIndex() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {/* Feature 18: Total Active Value */}
           <div className="hidden sm:flex items-center gap-2 bg-white border border-slate-200/80 px-3 py-2 rounded-lg shadow-sm mr-2">
             <span className="text-[9px] font-extrabold uppercase tracking-widest text-slate-400">Pipeline Value</span>
             <span className="text-xs font-black tracking-tight text-slate-900">{formatCurrency(totalActiveValue)}</span>
@@ -206,7 +279,7 @@ export default function DashboardIndex() {
         </div>
       </header>
 
-      {/* KPI GRID (Feature 1: Watermark Background Icons) */}
+      {/* KPI GRID */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 shrink-0 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100 fill-mode-both">
         {metricsLoading ? (
           <>
@@ -234,12 +307,11 @@ export default function DashboardIndex() {
           <div className="px-5 py-4 border-b border-slate-100 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
             <div className="flex items-center gap-3">
               <h2 className="font-extrabold text-slate-900 flex items-center gap-2 text-sm tracking-tight">
-                <Cpu className="w-4 h-4 text-blue-600" /> Active Projects
+                <Cpu className="w-4 h-4 text-blue-600" /> Active Pipeline
               </h2>
               {actionItems > 0 && <span className="text-[9px] font-bold px-2 py-0.5 bg-amber-50 text-amber-700 rounded border border-amber-200 uppercase tracking-widest animate-pulse shadow-sm flex items-center gap-1"><Zap className="w-2.5 h-2.5 fill-amber-500"/> {actionItems} Action Needed</span>}
             </div>
 
-            {/* Feature 4, 5, 6: Command Bar */}
             <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
               <div className="relative shrink-0 group">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
@@ -253,9 +325,10 @@ export default function DashboardIndex() {
                 <Filter className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
                 <select value={phaseFilter} onChange={(e) => setPhaseFilter(e.target.value)} className="pl-7 pr-6 py-1.5 text-[10px] bg-white border border-slate-200 rounded-md focus:outline-none font-bold text-slate-700 uppercase tracking-wider appearance-none cursor-pointer hover:bg-slate-50">
                   <option value="ALL">All Phases</option>
-                  <option value="SOURCING">Drafts</option>
+                  <option value="SOURCING">Workspace Staging</option>
                   <option value="ALTERNATES">Needs Review</option>
-                  <option value="QUOTE_READY">Ready to Order</option>
+                  <option value="QUOTE_READY">Quotation Ready</option>
+                  <option value="ORDERED">PO Executed</option>
                 </select>
               </div>
               <div className="relative shrink-0">
@@ -294,7 +367,7 @@ export default function DashboardIndex() {
                       <tr>
                         <th className="px-5 py-3 pl-6 w-8"></th>
                         <th className="px-5 py-3">Project Ref</th>
-                        <th className="px-5 py-3">Pipeline Phase</th>
+                        <th className="px-5 py-3">Pipeline Tracker</th>
                         <th className="px-5 py-3 text-right">Est. Value</th>
                         <th className="px-5 py-3 text-right pr-6">Action</th>
                       </tr>
@@ -335,7 +408,6 @@ export default function DashboardIndex() {
             <h2 className="font-extrabold text-slate-900 flex items-center gap-2 text-sm tracking-tight">
               <Newspaper className="w-4 h-4 text-blue-600" /> Market Intelligence
             </h2>
-            {/* Feature 12: News Category Pills */}
             <div className="flex gap-2">
               <button onClick={() => setNewsFilter('ALL')} className={`px-2.5 py-1 rounded text-[9px] font-bold uppercase tracking-widest transition-all ${newsFilter === 'ALL' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>All</button>
               <button onClick={() => setNewsFilter('MARKET')} className={`px-2.5 py-1 rounded text-[9px] font-bold uppercase tracking-widest transition-all ${newsFilter === 'MARKET' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>Supply Chain</button>
@@ -368,18 +440,10 @@ export default function DashboardIndex() {
 // MICRO-COMPONENTS
 // ============================================================================
 
-const getPhaseProgress = (phase: PipelinePhase) => {
-  switch (phase) {
-    case 'SOURCING': return { progress: 20, color: 'bg-slate-400' };
-    case 'ALTERNATES': return { progress: 40, color: 'bg-amber-500' };
-    case 'QUOTE_READY': return { progress: 60, color: 'bg-blue-500' };
-    case 'PAID': return { progress: 80, color: 'bg-purple-500' };
-    case 'ORDERED': return { progress: 100, color: 'bg-emerald-500' };
-    default: return { progress: 0, color: 'bg-slate-200' };
-  }
-};
-
-const CurrentStatusIndicator = memo(({ phase, pendingAlternates, lastUpdated }: { phase: PipelinePhase, pendingAlternates: number, lastUpdated: string }) => {
+const CurrentStatusIndicator = memo(({ pipeline }: { pipeline: BomPipelineSummary }) => {
+  const navigate = useNavigate();
+  const { phase, pendingAlternates, lastUpdated, workspaceId, quoteId } = pipeline;
+  
   const getStatusConfig = () => {
     switch (phase) {
       case 'SOURCING': return { icon: Search, label: 'Draft Project', color: 'text-slate-600', bg: 'bg-slate-100', border: 'border-slate-200/60' };
@@ -393,20 +457,66 @@ const CurrentStatusIndicator = memo(({ phase, pendingAlternates, lastUpdated }: 
 
   const config = getStatusConfig();
   const Icon = config.icon;
-  const { progress, color } = getPhaseProgress(phase);
+
+  // Compute Active Step for Interactive Stepper
+  let currentStep = 0;
+  if (['ALTERNATES', 'QUOTE_READY'].includes(phase)) currentStep = 1;
+  if (['PAID', 'ORDERED'].includes(phase)) currentStep = 2;
+
+  // Interactive Route Resolvers
+  const steps = [
+    { label: 'Staging', route: '/dashboard/projects', active: true },
+    { label: 'Quotation', route: quoteId ? `/dashboard/quotes/${quoteId}` : null, active: !!quoteId },
+    { label: 'PO', route: quoteId && pipeline.poId ? `/dashboard/quotes/${quoteId}/po` : null, active: !!pipeline.poId }
+  ];
 
   return (
-    <div className="flex flex-col gap-2 w-full max-w-[180px]">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-3 w-full max-w-[210px]">
+      <div className="flex items-center justify-between mb-0.5">
         <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded border ${config.bg} ${config.border} ${config.color} text-[9px] font-bold uppercase tracking-widest shadow-sm`}>
           <Icon className="w-2.5 h-2.5" /> {config.label}
         </div>
         <span className="text-[8px] font-extrabold text-slate-400 uppercase tracking-widest">{timeAgo(lastUpdated)}</span>
       </div>
-      {/* Feature 8: Progress Bar */}
-      <div className="w-full bg-slate-100 rounded-full h-1 overflow-hidden">
-        <div className={`h-full rounded-full ${color} transition-all duration-500`} style={{ width: `${progress}%` }} />
+      
+      {/* Interactive Visual Stepper */}
+      <div className="flex items-center justify-between relative px-2">
+        <div className="absolute left-3 right-3 top-1.5 -translate-y-1/2 h-[2px] bg-slate-200 rounded-full z-0">
+           <div className="h-full bg-blue-500 rounded-full transition-all duration-700 ease-out" style={{ width: currentStep === 0 ? '0%' : currentStep === 1 ? '50%' : '100%' }} />
+        </div>
+
+        {steps.map((step, idx) => {
+          const isPast = idx < currentStep;
+          const isCurrent = idx === currentStep;
+          const isActive = isPast || isCurrent;
+          
+          return (
+            <div 
+              key={step.label} 
+              className={`relative z-10 flex flex-col items-center gap-1.5 group ${step.active ? 'cursor-pointer hover:scale-110 transition-transform' : 'cursor-not-allowed opacity-60'}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (step.active && step.route) navigate(step.route);
+              }}
+              title={step.active ? `Open ${step.label}` : `Pending ${step.label}`}
+            >
+              <div className={`w-3.5 h-3.5 rounded-full border-2 transition-all duration-300 flex items-center justify-center
+                ${isPast ? 'bg-blue-500 border-blue-500' : 
+                  isCurrent ? 'bg-white border-blue-600 ring-[3px] ring-blue-100 shadow-sm' : 
+                  'bg-white border-slate-300'}`}
+              >
+                {isPast && <CheckCircle2 className="w-2.5 h-2.5 text-white" />}
+                {isCurrent && <div className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-pulse" />}
+              </div>
+              <span className={`text-[7px] font-extrabold uppercase tracking-widest absolute -bottom-4 whitespace-nowrap
+                ${isCurrent ? 'text-slate-900' : isActive ? 'text-slate-500' : 'text-slate-400'}`}>
+                {step.label}
+              </span>
+            </div>
+          );
+        })}
       </div>
+      <div className="h-1"></div>
     </div>
   );
 });
@@ -415,17 +525,18 @@ CurrentStatusIndicator.displayName = 'CurrentStatusIndicator';
 const PipelineRow = memo(({ pipeline, index, isPinned, onPin }: { pipeline: BomPipelineSummary, index: number, isPinned: boolean, onPin: (e: any) => void }) => {
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
-  const shortId = pipeline.id.split('-')[0].toUpperCase();
+  const shortId = pipeline.workspaceId.split('-')[0].toUpperCase();
   const createdDate = new Date(pipeline.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   const handleRouting = useCallback(() => {
-    if (pipeline.phase === 'SOURCING') navigate('/dashboard/projects'); 
-    else navigate(`/dashboard/quotes/${pipeline.id}`);
-  }, [navigate, pipeline.phase, pipeline.id]);
+    if (pipeline.phase === 'SOURCING') navigate('/dashboard/projects');
+    else if (['ORDERED', 'PAID'].includes(pipeline.phase)) navigate(`/dashboard/quotes/${pipeline.quoteId}/po`);
+    else navigate(`/dashboard/quotes/${pipeline.quoteId}`);
+  }, [navigate, pipeline.phase, pipeline.quoteId]);
 
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
-    navigator.clipboard.writeText(`PRJ-${shortId}`);
+    navigator.clipboard.writeText(pipeline.poNumber || `PRJ-${shortId}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -437,7 +548,6 @@ const PipelineRow = memo(({ pipeline, index, isPinned, onPin }: { pipeline: BomP
       style={{ animationDelay: `${index * 30}ms`, animationFillMode: 'both' }}
     >
       <td className="px-5 py-4 pl-6 w-8 text-center">
-        {/* Feature 7: Star/Pin */}
         <button onClick={onPin} className="focus:outline-none p-1 -ml-1 transition-transform active:scale-90">
           <Star className={`w-4 h-4 transition-colors ${isPinned ? 'fill-amber-400 text-amber-400' : 'text-slate-300 group-hover:text-slate-400'}`} />
         </button>
@@ -445,17 +555,22 @@ const PipelineRow = memo(({ pipeline, index, isPinned, onPin }: { pipeline: BomP
       <td className="px-5 py-4">
         <div className="font-extrabold tracking-tight text-slate-900 text-sm mb-1 truncate max-w-[200px] group-hover:text-blue-600 transition-colors">{pipeline.projectName}</div>
         <div className="flex items-center gap-2">
-          {/* Feature 9: Quick Copy ID */}
-          <button onClick={handleCopy} className="text-[9px] text-slate-500 font-bold uppercase tracking-widest flex items-center gap-1 hover:text-blue-600 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200/60 transition-colors">
-            PRJ-{shortId} {copied ? <CheckCircle2 className="w-2.5 h-2.5 text-emerald-500" /> : <Copy className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />}
-          </button>
+          {pipeline.poNumber ? (
+            <button onClick={handleCopy} className="text-[9px] text-emerald-700 font-black uppercase tracking-widest flex items-center gap-1 hover:bg-emerald-100 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 transition-colors">
+              {pipeline.poNumber} {copied ? <CheckCircle2 className="w-2.5 h-2.5 text-emerald-500" /> : <Copy className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />}
+            </button>
+          ) : (
+            <button onClick={handleCopy} className="text-[9px] text-slate-500 font-bold uppercase tracking-widest flex items-center gap-1 hover:text-blue-600 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200/60 transition-colors">
+              PRJ-{shortId} {copied ? <CheckCircle2 className="w-2.5 h-2.5 text-emerald-500" /> : <Copy className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />}
+            </button>
+          )}
           <span className="w-1 h-1 rounded-full bg-slate-300"></span>
           <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{createdDate}</span>
         </div>
       </td>
 
-      <td className="px-5 py-4 w-56">
-        <CurrentStatusIndicator phase={pipeline.phase} pendingAlternates={pipeline.pendingAlternates} lastUpdated={pipeline.lastUpdated} />
+      <td className="px-5 py-4 w-64">
+        <CurrentStatusIndicator pipeline={pipeline} />
       </td>
 
       <td className="px-5 py-4 text-right">
@@ -469,13 +584,20 @@ const PipelineRow = memo(({ pipeline, index, isPinned, onPin }: { pipeline: BomP
       
       <td className="px-5 py-4 text-right pr-6">
         <div className="flex items-center justify-end gap-2">
+          
+          {/* Direct PO Access Shortcut */}
+          {['ORDERED', 'PAID'].includes(pipeline.phase) && pipeline.poId && (
+             <button onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/quotes/${pipeline.quoteId}/po`); }} className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-3 py-1.5 rounded-lg border border-emerald-200 text-[9px] font-bold uppercase tracking-wider transition-all inline-flex items-center justify-center gap-1.5 focus:outline-none shadow-sm active:scale-95">
+               <FileText className="w-3 h-3" /> View PO
+             </button>
+          )}
+
           <button className="bg-white hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-200/80 text-[9px] font-bold uppercase tracking-wider transition-all inline-flex items-center justify-center gap-1.5 focus:outline-none shadow-sm active:scale-95">
             {pipeline.phase === 'SOURCING' ? <><Folder className="w-3 h-3 text-blue-600" /> Workspace</> : 
              pipeline.phase === 'ALTERNATES' ? <><ArrowRight className="w-3 h-3 text-amber-600" /> Review</> : 
              pipeline.phase === 'QUOTE_READY' ? <><ShoppingCart className="w-3 h-3 text-blue-600" /> Order</> : 
              <><ArrowRight className="w-3 h-3" /> Details</>}
           </button>
-          {/* Feature 11: Quick Actions Menu */}
           <button onClick={(e) => {e.stopPropagation(); alert("Action menu opened");}} className="p-1.5 text-slate-300 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors opacity-0 group-hover:opacity-100">
             <MoreVertical className="w-4 h-4" />
           </button>
@@ -488,12 +610,13 @@ PipelineRow.displayName = 'PipelineRow';
 
 const MobilePipelineCard = memo(({ pipeline, index, isPinned, onPin }: { pipeline: BomPipelineSummary, index: number, isPinned: boolean, onPin: (e: any) => void }) => {
   const navigate = useNavigate();
-  const shortId = pipeline.id.split('-')[0].toUpperCase();
+  const shortId = pipeline.workspaceId.split('-')[0].toUpperCase();
   
   const handleRouting = useCallback(() => {
     if (pipeline.phase === 'SOURCING') navigate('/dashboard/projects');
-    else navigate(`/dashboard/quotes/${pipeline.id}`);
-  }, [navigate, pipeline.phase, pipeline.id]);
+    else if (['ORDERED', 'PAID'].includes(pipeline.phase)) navigate(`/dashboard/quotes/${pipeline.quoteId}/po`);
+    else navigate(`/dashboard/quotes/${pipeline.quoteId}`);
+  }, [navigate, pipeline.phase, pipeline.quoteId]);
 
   return (
     <div 
@@ -508,22 +631,25 @@ const MobilePipelineCard = memo(({ pipeline, index, isPinned, onPin }: { pipelin
           </button>
           <div className="min-w-0">
             <div className="font-extrabold tracking-tight text-slate-900 text-sm truncate">{pipeline.projectName}</div>
-            <div className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mt-1">PRJ-{shortId} • {pipeline.partCount} Parts</div>
+            {pipeline.poNumber ? (
+               <div className="text-[9px] font-black uppercase tracking-widest text-emerald-600 mt-1">{pipeline.poNumber} • {pipeline.partCount} Parts</div>
+            ) : (
+               <div className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mt-1">PRJ-{shortId} • {pipeline.partCount} Parts</div>
+            )}
           </div>
         </div>
         <div className="font-black tracking-tight text-slate-900 text-sm shrink-0">
           {pipeline.quotedValue > 0 ? formatCurrency(pipeline.quotedValue) : <span className="text-slate-400 text-[9px] font-bold uppercase tracking-widest">Pending</span>}
         </div>
       </div>
-      <div className="mt-1">
-        <CurrentStatusIndicator phase={pipeline.phase} pendingAlternates={pipeline.pendingAlternates} lastUpdated={pipeline.lastUpdated} />
+      <div className="mt-1 pb-2">
+        <CurrentStatusIndicator pipeline={pipeline} />
       </div>
     </div>
   );
 });
 MobilePipelineCard.displayName = 'MobilePipelineCard';
 
-// Feature 1: Watermark KPI Icons
 const KpiCard = memo(({ title, value, trend, trendLabel, icon: Icon, positive, alert = false }: any) => (
   <div className={`p-4 rounded-2xl border shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-center relative overflow-hidden group ${alert ? 'bg-red-50 border-red-200/60' : 'bg-white border-slate-200/80'}`}>
     <Icon className={`absolute -right-4 -bottom-4 w-24 h-24 transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-6 pointer-events-none ${alert ? 'text-red-500/10' : 'text-slate-900/[0.03]'}`} />
@@ -574,7 +700,6 @@ const NewsItem = memo(({ article, index }: { article: NewsArticle, index: number
     className="block group border border-slate-100 bg-white hover:bg-slate-50/80 hover:border-slate-200/80 p-4 rounded-2xl transition-all duration-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-300 animate-in fade-in slide-in-from-bottom-2 relative overflow-hidden"
     style={{ animationDelay: `${index * 40}ms`, animationFillMode: 'both' }}
   >
-    {/* Feature 13: Unread indicator */}
     {index === 0 && <div className="absolute top-3 right-3 w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />}
 
     <div className="flex items-center justify-between mb-2.5">
