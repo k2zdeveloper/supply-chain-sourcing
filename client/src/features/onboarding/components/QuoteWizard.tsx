@@ -5,7 +5,8 @@ import { z } from 'zod';
 import Papa, { type ParseResult } from 'papaparse';
 import { 
   UploadCloud, FileSpreadsheet, Edit3, ShieldCheck, 
-  ArrowLeft, Plus, Trash2, Cpu, BrainCircuit, Activity
+  ArrowLeft, Plus, Trash2, Cpu, BrainCircuit, Activity,
+  Terminal
 } from 'lucide-react';
 
 import type { BomRecord, RiskLevel, LifecycleStatus } from '@/features/bom/types';
@@ -48,11 +49,11 @@ interface QuoteWizardProps {
 
 // Processing Log Sequence to make the wait time engaging
 const PROCESSING_LOGS = [
-  "Initializing neural parser...",
-  "Extracting component parameters...",
-  "Validating MPN nomenclature...",
-  "Mapping global supplier chains...",
-  "Finalizing data payload..."
+  "> INITIALIZING NEURAL PARSER...",
+  "> EXTRACTING COMPONENT PARAMETERS...",
+  "> VALIDATING MPN NOMENCLATURE...",
+  "> MAPPING GLOBAL SUPPLIER CHAINS...",
+  "> FINALIZING DATA PAYLOAD..."
 ];
 
 // ============================================================================
@@ -197,8 +198,8 @@ export const QuoteWizard = memo(({ onSuccess, defaultStep = 'select-method' }: Q
   }, []);
 
   return (
-    <div className={`w-full rounded-[2rem] shadow-2xl relative overflow-hidden font-sans transition-all duration-700 ease-out flex flex-col min-h-[460px]
-      ${step === 'processing' ? 'bg-gray-950 border-gray-800' : 'bg-white border-gray-100 ring-1 ring-gray-900/5'}
+    <div className={`w-full rounded-sm shadow-2xl relative overflow-hidden transition-all duration-700 ease-out flex flex-col min-h-[460px]
+      ${step === 'processing' ? 'bg-[#020617] border border-[#D4AF37]/50' : 'bg-slate-950 border border-slate-800'}
     `}>
       
       {/* Inline Keyframes for the Cinematic Scanner */}
@@ -212,46 +213,46 @@ export const QuoteWizard = memo(({ onSuccess, defaultStep = 'select-method' }: Q
       `}</style>
 
       {/* Decorative Top Accent Line */}
-      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 z-20" />
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent z-20" />
 
       {/* =====================================================================
-          SHOW-STOPPING PROCESSING STATE (DARK THEME INVERSION)
+          SHOW-STOPPING PROCESSING STATE (TERMINAL THEME)
           ===================================================================== */}
       {step === 'processing' && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center text-white animate-in fade-in zoom-in-95 duration-500 overflow-hidden">
           
           {/* Animated Tech Grid */}
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#3b82f61a_1px,transparent_1px),linear-gradient(to_bottom,#3b82f61a_1px,transparent_1px)] bg-[size:32px_32px]" />
+          <div className="absolute inset-0 opacity-10" style={{ backgroundImage: `linear-gradient(to right, rgba(212, 175, 55, 0.5) 1px, transparent 1px), linear-gradient(to bottom, rgba(212, 175, 55, 0.5) 1px, transparent 1px)`, backgroundSize: '32px 32px' }} />
           
           {/* Laser Scanner Line */}
-          <div className="absolute top-0 left-0 w-full h-[2px] bg-blue-400 shadow-[0_0_20px_5px_rgba(59,130,246,0.6)] animate-[scan_2.5s_ease-in-out_infinite] z-0" />
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-[#D4AF37] shadow-[0_0_20px_5px_rgba(212,175,55,0.6)] animate-[scan_2.5s_ease-in-out_infinite] z-0" />
 
           <div className="relative z-10 flex flex-col items-center">
             <div className="relative w-20 h-20 mb-8 flex items-center justify-center">
-              <div className="absolute inset-0 bg-blue-500/20 rounded-full animate-ping" />
-              <div className="absolute inset-2 bg-blue-600/30 rounded-full animate-pulse" />
-              <BrainCircuit className="w-10 h-10 text-blue-400" />
+              <div className="absolute inset-0 bg-[#D4AF37]/10 rounded border border-[#D4AF37]/30 animate-ping" />
+              <div className="absolute inset-2 bg-[#D4AF37]/20 rounded border border-[#D4AF37]/50 animate-pulse" />
+              <BrainCircuit className="w-10 h-10 text-[#FCD34D]" />
             </div>
             
-            <h3 className="text-2xl font-extrabold text-white mb-3 tracking-tight">Processing Payload</h3>
+            <h3 className="text-2xl font-black text-white mb-3 tracking-widest uppercase font-mono">Processing Payload</h3>
             
             {/* Dynamic Console Text */}
             <div className="h-6 flex items-center justify-center overflow-hidden">
-              <p key={logIndex} className="text-blue-300 text-[11px] font-mono uppercase tracking-widest animate-in slide-in-from-bottom-2 fade-in duration-300">
+              <p key={logIndex} className="text-[#D4AF37] text-[11px] font-mono uppercase tracking-widest animate-in slide-in-from-bottom-2 fade-in duration-300">
                 {PROCESSING_LOGS[logIndex]}
               </p>
             </div>
 
             {/* Glowing Progress Bar */}
-            <div className="w-64 h-1.5 bg-gray-800 rounded-full overflow-hidden mt-8 shadow-inner ring-1 ring-white/10">
+            <div className="w-64 h-1.5 bg-slate-900 border border-slate-800 rounded-sm overflow-hidden mt-8 shadow-inner">
               <div 
-                className="h-full bg-gradient-to-r from-blue-500 to-indigo-400 transition-all duration-[400ms] ease-out relative" 
+                className="h-full bg-[#D4AF37] transition-all duration-[400ms] ease-out relative shadow-[0_0_10px_#D4AF37]" 
                 style={{ width: `${progress}%` }} 
               >
                 <div className="absolute top-0 right-0 bottom-0 w-10 bg-gradient-to-r from-transparent to-white/50 animate-pulse" />
               </div>
             </div>
-            <p className="text-gray-500 text-[10px] mt-3 font-mono tracking-widest">{progress}% VERIFIED</p>
+            <p className="text-slate-500 text-[10px] mt-3 font-mono tracking-widest">{progress}% VERIFIED</p>
           </div>
         </div>
       )}
@@ -264,22 +265,23 @@ export const QuoteWizard = memo(({ onSuccess, defaultStep = 'select-method' }: Q
         {/* Dynamic Header */}
         <div className="px-8 mb-6 shrink-0">
           {step !== 'select-method' && (
-            <button onClick={() => setStep('select-method')} className="text-[11px] font-bold uppercase tracking-widest text-gray-400 hover:text-gray-900 transition-all flex items-center gap-1.5 mb-5 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-1 -ml-1 group">
-              <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" /> Start Over
+            <button onClick={() => setStep('select-method')} className="text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-[#D4AF37] transition-all flex items-center gap-1.5 mb-5 outline-none font-mono group">
+              <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" /> START OVER
             </button>
           )}
-          <h3 className="text-3xl font-extrabold tracking-tight text-gray-900">
-            {step === 'select-method' ? "Let's build your BOM." : step === 'upload' ? "Upload your list." : "Tell us what you need."}
+          <h3 className="text-2xl font-black tracking-widest text-white uppercase font-mono flex items-center gap-2">
+            <Terminal className="w-6 h-6 text-[#D4AF37]" />
+            {step === 'select-method' ? "Let's build your BOM." : step === 'upload' ? "Upload Payload." : "Manual Entry."}
           </h3>
-          <p className="text-sm text-gray-500 font-medium mt-1.5 max-w-sm">
-            {step === 'select-method' && "Choose how you'd like to import your components to launch the AI engine."}
-            {step === 'upload' && "Drop your CSV file below. The AI will handle the parsing and MPN mapping."}
-            {step === 'manual' && "Enter your parts manually below to start a quick, precision spot-buy."}
+          <p className="text-xs text-slate-400 font-mono mt-2 max-w-sm uppercase tracking-wider">
+            {step === 'select-method' && <>&gt; Choose how you'd like to import your components to launch the AI engine.</>}
+            {step === 'upload' && <>&gt; Drop your CSV file below for ingestion.</>}
+            {step === 'manual' && <>&gt; Enter parts manually for a precision spot-buy.</>}
           </p>
 
           {error && (
-            <div className="mt-4 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-700 text-sm font-semibold flex items-start gap-3 animate-in slide-in-from-top-4 shadow-sm">
-               <ShieldCheck className="w-5 h-5 text-red-500 shrink-0 mt-0.5" /> 
+            <div className="mt-4 p-4 bg-red-950/30 border border-red-900/50 rounded-sm text-red-400 text-xs font-mono flex items-start gap-3 animate-in slide-in-from-top-4 shadow-sm uppercase">
+               <ShieldCheck className="w-4 h-4 text-red-500 shrink-0 mt-0.5" /> 
                <span className="leading-snug">{error}</span>
             </div>
           )}
@@ -291,20 +293,20 @@ export const QuoteWizard = memo(({ onSuccess, defaultStep = 'select-method' }: Q
           {/* STEP 1: Select Method */}
           {step === 'select-method' && (
             <div className="grid sm:grid-cols-2 gap-4 flex-1 animate-in zoom-in-[0.98] fade-in duration-500 ease-out">
-              <button onClick={() => setStep('upload')} className="group relative flex flex-col justify-center items-start p-6 bg-white hover:bg-gray-50 border border-gray-200 hover:border-blue-300 rounded-[1.5rem] transition-all text-left outline-none focus-visible:border-blue-500 focus-visible:ring-4 focus-visible:ring-blue-500/20 shadow-sm hover:shadow-lg hover:-translate-y-1">
-                <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center shadow-inner mb-4 group-hover:bg-blue-50 group-hover:scale-110 transition-all duration-300 border border-gray-100">
-                  <FileSpreadsheet className="w-6 h-6 text-blue-600" />
+              <button onClick={() => setStep('upload')} className="group relative flex flex-col justify-center items-start p-6 bg-slate-900/50 hover:bg-slate-900 border border-slate-800 hover:border-[#D4AF37]/50 rounded-sm transition-all text-left outline-none shadow-sm">
+                <div className="w-12 h-12 bg-[#020617] rounded border border-slate-800 flex items-center justify-center shadow-inner mb-4 group-hover:border-[#D4AF37]/50 transition-all duration-300">
+                  <FileSpreadsheet className="w-6 h-6 text-[#D4AF37]" />
                 </div>
-                <span className="font-bold text-gray-900 text-lg">Upload a CSV</span>
-                <span className="text-xs text-gray-500 mt-2 font-medium leading-relaxed">Perfect for large projects. Drop your existing list right into our engine.</span>
+                <span className="font-bold text-white text-sm font-mono uppercase tracking-widest">Upload a CSV</span>
+                <span className="text-[10px] text-slate-500 mt-2 font-mono uppercase leading-relaxed tracking-wider">&gt; Perfect for large projects. Drop your existing list right into our engine.</span>
               </button>
 
-              <button onClick={() => setStep('manual')} className="group relative flex flex-col justify-center items-start p-6 bg-white hover:bg-gray-50 border border-gray-200 hover:border-blue-300 rounded-[1.5rem] transition-all text-left outline-none focus-visible:border-blue-500 focus-visible:ring-4 focus-visible:ring-blue-500/20 shadow-sm hover:shadow-lg hover:-translate-y-1">
-                <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center shadow-inner mb-4 group-hover:bg-blue-50 group-hover:scale-110 transition-all duration-300 border border-gray-100">
-                  <Edit3 className="w-6 h-6 text-blue-600" />
+              <button onClick={() => setStep('manual')} className="group relative flex flex-col justify-center items-start p-6 bg-slate-900/50 hover:bg-slate-900 border border-slate-800 hover:border-[#D4AF37]/50 rounded-sm transition-all text-left outline-none shadow-sm">
+                <div className="w-12 h-12 bg-[#020617] rounded border border-slate-800 flex items-center justify-center shadow-inner mb-4 group-hover:border-[#D4AF37]/50 transition-all duration-300">
+                  <Edit3 className="w-6 h-6 text-[#D4AF37]" />
                 </div>
-                <span className="font-bold text-gray-900 text-lg">Enter Manually</span>
-                <span className="text-xs text-gray-500 mt-2 font-medium leading-relaxed">Great for quick spot-buys or checking availability on a few specific parts.</span>
+                <span className="font-bold text-white text-sm font-mono uppercase tracking-widest">Enter Manually</span>
+                <span className="text-[10px] text-slate-500 mt-2 font-mono uppercase leading-relaxed tracking-wider">&gt; Great for quick spot-buys or checking availability on a few specific parts.</span>
               </button>
             </div>
           )}
@@ -313,10 +315,10 @@ export const QuoteWizard = memo(({ onSuccess, defaultStep = 'select-method' }: Q
           {step === 'upload' && (
             <div className="flex flex-col gap-6 flex-1 animate-in slide-in-from-right-12 fade-in duration-500 ease-out">
               <div 
-                className={`flex-1 border-2 border-dashed rounded-[1.5rem] p-10 flex flex-col items-center justify-center text-center transition-all duration-300 cursor-pointer group outline-none focus-visible:border-blue-500 focus-visible:ring-4 focus-visible:ring-blue-500/20 min-h-[220px] relative overflow-hidden
+                className={`flex-1 border-2 border-dashed rounded-sm p-10 flex flex-col items-center justify-center text-center transition-all duration-300 cursor-pointer group outline-none min-h-[220px] relative overflow-hidden
                   ${isDragging 
-                    ? 'border-blue-500 bg-blue-50/80 scale-[1.02] shadow-[0_0_30px_rgba(59,130,246,0.15)] ring-4 ring-blue-500/20' 
-                    : 'border-gray-300 hover:border-blue-400 bg-gray-50/50 hover:bg-white'
+                    ? 'border-[#D4AF37] bg-[#D4AF37]/10 scale-[1.02] shadow-[inset_0_0_30px_rgba(212,175,55,0.15)]' 
+                    : 'border-slate-700 hover:border-[#D4AF37]/50 bg-slate-900/30 hover:bg-slate-900'
                   }
                 `}
                 onClick={() => fileInputRef.current?.click()}
@@ -328,27 +330,27 @@ export const QuoteWizard = memo(({ onSuccess, defaultStep = 'select-method' }: Q
                 role="button"
               >
                 {/* Internal Decorative Grid */}
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#00000005_1px,transparent_1px),linear-gradient(to_bottom,#00000005_1px,transparent_1px)] bg-[size:16px_16px] pointer-events-none" />
+                <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: `linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)`, backgroundSize: '16px 16px' }} />
 
-                <div className={`w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-5 transition-all duration-500 shadow-sm ring-1 ring-gray-900/5 relative z-10
-                  ${isDragging ? 'scale-125 shadow-lg shadow-blue-500/20 rotate-6' : 'group-hover:scale-110 group-hover:-rotate-3 group-hover:shadow-md'}
+                <div className={`w-16 h-16 bg-[#020617] rounded flex items-center justify-center mb-5 transition-all duration-500 border border-slate-800 relative z-10
+                  ${isDragging ? 'scale-125 border-[#D4AF37] rotate-6 shadow-[0_0_15px_rgba(212,175,55,0.2)]' : 'group-hover:scale-110 group-hover:-rotate-3 group-hover:border-[#D4AF37]/50'}
                 `}>
-                  <UploadCloud className={`w-8 h-8 transition-colors ${isDragging ? 'text-blue-600' : 'text-gray-400 group-hover:text-blue-500'}`} />
+                  <UploadCloud className={`w-8 h-8 transition-colors ${isDragging ? 'text-[#FCD34D]' : 'text-slate-500 group-hover:text-[#D4AF37]'}`} />
                 </div>
-                <p className={`text-lg font-bold transition-colors relative z-10 ${isDragging ? 'text-blue-700' : 'text-gray-900'}`}>
-                  {isDragging ? 'Release to Initialize' : 'Click or Drag CSV Here'}
+                <p className={`text-sm font-bold font-mono tracking-widest transition-colors relative z-10 uppercase ${isDragging ? 'text-[#FCD34D]' : 'text-white'}`}>
+                  {isDragging ? 'RELEASE TO INITIALIZE' : <>&gt; CLICK OR DRAG CSV HERE</>}
                 </p>
-                <p className="text-xs text-gray-400 mt-2 font-bold tracking-widest uppercase relative z-10">Max payload: 5MB</p>
+                <p className="text-[10px] text-slate-500 mt-2 font-mono tracking-widest uppercase relative z-10">Max payload: 5MB</p>
                 <input type="file" ref={fileInputRef} className="hidden" accept=".csv" onChange={handleFileChange} tabIndex={-1} />
               </div>
 
-              <div className="bg-white border border-gray-200 rounded-[1.25rem] p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shrink-0 shadow-sm">
+              <div className="bg-slate-900 border border-slate-800 rounded-sm p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shrink-0">
                 <div className="space-y-1">
-                  <p className="text-sm font-bold text-gray-900">Need a clean start?</p>
-                  <p className="text-xs text-gray-500 font-medium">Download our template to ensure perfect accuracy.</p>
+                  <p className="text-[11px] font-bold text-slate-300 font-mono uppercase tracking-widest">&gt; Need a clean start?</p>
+                  <p className="text-[10px] text-slate-500 font-mono uppercase tracking-widest">Download strict formatting template.</p>
                 </div>
-                <button type="button" onClick={handleDownloadTemplate} className="w-full sm:w-auto px-5 py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 text-xs font-bold rounded-xl transition-all shadow-sm focus:outline-none focus:ring-4 focus:ring-gray-100 active:scale-95">
-                  Download Template
+                <button type="button" onClick={handleDownloadTemplate} className="w-full sm:w-auto px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 hover:border-[#D4AF37] text-[10px] font-bold rounded-sm transition-all shadow-sm focus:outline-none uppercase tracking-widest font-mono">
+                  Get Template
                 </button>
               </div>
             </div>
@@ -358,42 +360,42 @@ export const QuoteWizard = memo(({ onSuccess, defaultStep = 'select-method' }: Q
           {step === 'manual' && (
             <form onSubmit={handleSubmit(onSubmitManual)} className="flex flex-col gap-6 flex-1 min-h-0 animate-in slide-in-from-right-12 fade-in duration-500 ease-out">
               <div className="space-y-2 shrink-0">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest pl-1">Project Name</label>
+                <label className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-widest pl-1 font-mono">&gt; Project Name</label>
                 <input 
                   {...register('projectName')} 
-                  className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 text-gray-900 text-sm font-semibold focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all shadow-sm" 
-                  placeholder="e.g., Drone V4 Mainboard" 
+                  className="w-full bg-[#020617] border border-slate-700 rounded-sm px-4 py-3 text-white text-sm font-mono focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] outline-none transition-all shadow-sm placeholder:text-slate-600" 
+                  placeholder="E.G., DRONE V4 MAINBOARD" 
                   autoFocus
                 />
-                {errors.projectName && <p className="text-[10px] text-red-500 font-bold pl-1">{errors.projectName.message}</p>}
+                {errors.projectName && <p className="text-[10px] text-red-400 font-bold pl-1 font-mono uppercase">{errors.projectName.message}</p>}
               </div>
 
-              <div className="flex-1 flex flex-col bg-gray-50/50 rounded-2xl border border-gray-200 p-2 overflow-hidden min-h-0 shadow-inner">
+              <div className="flex-1 flex flex-col bg-[#020617]/50 rounded-sm border border-slate-800 p-2 overflow-hidden min-h-0">
                 <div className="flex items-center justify-between px-3 py-2 shrink-0">
-                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Components</label>
-                  <span className="text-[10px] text-gray-500 font-bold bg-white border border-gray-200 px-2 py-0.5 rounded-md shadow-sm">{fields.length} Line{fields.length !== 1 ? 's' : ''}</span>
+                  <label className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-widest font-mono">&gt; Components</label>
+                  <span className="text-[10px] text-[#FCD34D] font-mono font-bold bg-[#D4AF37]/10 border border-[#D4AF37]/30 px-2 py-0.5 rounded-sm">{fields.length} LINE{fields.length !== 1 ? 'S' : ''}</span>
                 </div>
                 
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-1 space-y-2">
                   {fields.map((field, index) => (
-                    <div key={field.id} className="flex gap-2 items-start bg-white p-3 rounded-xl border border-gray-100 shadow-sm transition-all focus-within:ring-1 focus-within:ring-blue-500/30 focus-within:border-blue-300">
+                    <div key={field.id} className="flex gap-2 items-start bg-slate-900 p-3 rounded-sm border border-slate-800 shadow-sm transition-all focus-within:border-[#D4AF37]/50">
                       <div className="flex-1 grid grid-cols-1 sm:grid-cols-12 gap-2">
                         <div className="sm:col-span-5">
-                          <input {...register(`parts.${index}.mpn` as const)} placeholder="Part Number (Req)" className="w-full bg-transparent border-b border-gray-100 px-2 py-1.5 text-gray-900 font-mono text-xs font-semibold focus:border-blue-500 outline-none transition-colors" />
-                          {errors.parts?.[index]?.mpn && <p className="text-[10px] text-red-500 font-bold mt-1 px-2">{errors.parts[index]?.mpn?.message}</p>}
+                          <input {...register(`parts.${index}.mpn` as const)} placeholder="MPN (REQ)" className="w-full bg-transparent border-b border-slate-700 px-2 py-1 text-white font-mono text-xs focus:border-[#D4AF37] outline-none transition-colors placeholder:text-slate-600 uppercase" />
+                          {errors.parts?.[index]?.mpn && <p className="text-[9px] text-red-400 font-bold mt-1 px-2 font-mono uppercase">{errors.parts[index]?.mpn?.message}</p>}
                         </div>
                         <div className="sm:col-span-3">
-                          <input {...register(`parts.${index}.manufacturer` as const)} placeholder="Mfr (Opt)" className="w-full bg-transparent border-b border-gray-100 px-2 py-1.5 text-gray-600 text-xs focus:border-blue-500 outline-none transition-colors" />
+                          <input {...register(`parts.${index}.manufacturer` as const)} placeholder="MFR (OPT)" className="w-full bg-transparent border-b border-slate-700 px-2 py-1 text-slate-300 font-mono text-xs focus:border-[#D4AF37] outline-none transition-colors placeholder:text-slate-600 uppercase" />
                         </div>
                         <div className="sm:col-span-2">
-                          <input {...register(`parts.${index}.quantity` as const, { valueAsNumber: true })} type="number" placeholder="Qty" className="w-full bg-transparent border-b border-gray-100 px-2 py-1.5 text-gray-900 text-xs font-semibold focus:border-blue-500 outline-none transition-colors" />
-                          {errors.parts?.[index]?.quantity && <p className="text-[10px] text-red-500 font-bold mt-1 px-2">{errors.parts[index]?.quantity?.message}</p>}
+                          <input {...register(`parts.${index}.quantity` as const, { valueAsNumber: true })} type="number" placeholder="QTY" className="w-full bg-transparent border-b border-slate-700 px-2 py-1 text-white font-mono text-xs focus:border-[#D4AF37] outline-none transition-colors placeholder:text-slate-600" />
+                          {errors.parts?.[index]?.quantity && <p className="text-[9px] text-red-400 font-bold mt-1 px-2 font-mono uppercase">{errors.parts[index]?.quantity?.message}</p>}
                         </div>
                         <div className="sm:col-span-2">
-                          <input {...register(`parts.${index}.targetPrice` as const, { valueAsNumber: true })} type="number" step="0.01" placeholder="Price ($)" className="w-full bg-transparent border-b border-gray-100 px-2 py-1.5 text-gray-600 text-xs focus:border-blue-500 outline-none transition-colors" />
+                          <input {...register(`parts.${index}.targetPrice` as const, { valueAsNumber: true })} type="number" step="0.01" placeholder="PRICE ($)" className="w-full bg-transparent border-b border-slate-700 px-2 py-1 text-slate-300 font-mono text-xs focus:border-[#D4AF37] outline-none transition-colors placeholder:text-slate-600" />
                         </div>
                       </div>
-                      <button type="button" onClick={() => remove(index)} className="p-1.5 text-gray-300 hover:bg-red-50 hover:text-red-500 rounded-lg transition-colors mt-0.5 focus:outline-none" disabled={fields.length === 1}>
+                      <button type="button" onClick={() => remove(index)} className="p-1.5 text-slate-500 hover:bg-red-950/30 hover:text-red-400 rounded-sm transition-colors mt-0.5 focus:outline-none" disabled={fields.length === 1}>
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -401,14 +403,14 @@ export const QuoteWizard = memo(({ onSuccess, defaultStep = 'select-method' }: Q
                 </div>
 
                 <div className="p-1 shrink-0 mt-2">
-                  <button type="button" onClick={() => append({ mpn: '', manufacturer: '', quantity: 1, targetPrice: undefined })} className="w-full py-2.5 border border-dashed border-gray-300 hover:border-blue-400 bg-white hover:bg-blue-50 rounded-xl text-blue-600 text-xs font-bold flex items-center justify-center gap-1.5 transition-all focus:outline-none focus:ring-4 focus:ring-blue-500/20 shadow-sm active:scale-[0.99]">
-                    <Plus className="w-3.5 h-3.5" /> Add Component
+                  <button type="button" onClick={() => append({ mpn: '', manufacturer: '', quantity: 1, targetPrice: undefined })} className="w-full py-2.5 border border-dashed border-slate-700 hover:border-[#D4AF37]/50 bg-slate-900/50 hover:bg-slate-900 rounded-sm text-[#D4AF37] text-[10px] font-bold font-mono uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all focus:outline-none shadow-sm active:scale-[0.99]">
+                    <Plus className="w-3.5 h-3.5" /> Add Row
                   </button>
                 </div>
               </div>
 
               <div className="shrink-0 mt-2">
-                <button type="submit" className="w-full bg-gray-900 hover:bg-black text-white font-bold rounded-xl px-4 py-4 transition-all flex items-center justify-center gap-2 shadow-lg shadow-gray-900/20 focus:outline-none focus:ring-4 focus:ring-gray-900/30 active:scale-[0.98]">
+                <button type="submit" className="w-full bg-[#D4AF37] hover:bg-[#FCD34D] text-black font-black font-mono tracking-widest uppercase rounded-sm px-4 py-3 transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(212,175,55,0.2)] focus:outline-none active:scale-[0.98]">
                   <Activity className="w-4 h-4" /> Engage Neural Parser
                 </button>
               </div>
