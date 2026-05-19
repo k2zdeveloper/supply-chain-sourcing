@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 
 import type { BomRecord, RiskLevel, LifecycleStatus } from '@/features/bom/types';
+import { MPN_REGEX, MAX_BOM_ROWS } from '@/features/onboarding/schema';
 
 // ============================================================================
 // TYPES & SCHEMAS
@@ -22,20 +23,31 @@ export type ParsedBomPayload = {
 
 type WizardStep = 'select-method' | 'upload' | 'manual' | 'processing';
 
+const MPN_FORMAT_MESSAGE = "MPN must start with a letter or digit and use only A-Z, 0-9, '-', '/', '.', '_' (no spaces or special characters)";
+
 const manualEntrySchema = z.object({
   projectName: z.string().min(2, 'A project name helps you track this later.').trim(),
   parts: z.array(z.object({
-    mpn: z.string().min(2, 'We need an MPN to find this part.').trim(),
+    mpn: z.string()
+      .trim()
+      .min(2, 'MPN must be at least 2 characters')
+      .max(50, 'MPN must be at most 50 characters')
+      .regex(MPN_REGEX, MPN_FORMAT_MESSAGE),
     manufacturer: z.string().optional(),
     quantity: z.number().int().min(1, 'Need at least 1.'),
     targetPrice: z.number().positive('Price must be greater than zero.').optional()
   })).min(1, 'You need at least one component to start a project.')
+   .max(MAX_BOM_ROWS, `Max ${MAX_BOM_ROWS} parts per project.`)
 });
 
 type ManualEntryData = z.infer<typeof manualEntrySchema>;
 
 const csvRowSchema = z.object({
-  mpn: z.string().min(1, 'MPN required').trim(),
+  mpn: z.string()
+    .trim()
+    .min(2, 'MPN must be at least 2 characters')
+    .max(50, 'MPN must be at most 50 characters')
+    .regex(MPN_REGEX, MPN_FORMAT_MESSAGE),
   manufacturer: z.string().trim().default('Unknown'),
   quantity: z.number().int().positive('Quantity must be > 0').default(1),
   target_price: z.number().positive().nullable(),
@@ -114,9 +126,15 @@ export const QuoteWizard = memo(({ onSuccess, defaultStep = 'select-method' }: Q
       header: true, skipEmptyLines: true, worker: true,
       complete: (results: ParseResult<Record<string, string | undefined>>) => {
         try {
+          if (results.data.length > MAX_BOM_ROWS) {
+            throw new Error(
+              `Row limit exceeded: ${results.data.length} rows. Max ${MAX_BOM_ROWS} parts per upload. Split your BOM into smaller files.`
+            );
+          }
+
           const items: ParsedBomPayload['items'] = [];
           setProgress(40);
-          
+
           results.data.forEach((row, index) => {
             const rawData = {
               mpn: (row['Manufacturer Part Number (MPN)'] || row['MPN'])?.trim() || '',
@@ -189,7 +207,13 @@ export const QuoteWizard = memo(({ onSuccess, defaultStep = 'select-method' }: Q
 
   const handleDownloadTemplate = useCallback(() => {
     const headers = "Manufacturer Part Number (MPN),Manufacturer,Quantity,Target Price (Optional),Lead Time (Weeks)\n";
-    const sampleData = "STM32F405RGT6,STMicroelectronics,100,5.50,12\n";
+    const sampleData = [
+      "STM32F405RGT6,STMicroelectronics,100,5.50,12",
+      "ATMEGA328P-PU,Microchip,250,2.10,8",
+      "1N4148/SOD-323,Vishay,1000,0.05,4",
+      "LM358N,Texas Instruments,50,0.40,",
+      "GCM188R71H104KA57D,Murata,5000,0.012,16",
+    ].join("\n") + "\n";
     const blob = new Blob([headers + sampleData], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -342,6 +366,49 @@ export const QuoteWizard = memo(({ onSuccess, defaultStep = 'select-method' }: Q
                 </p>
                 <p className="text-[10px] text-slate-500 mt-2 font-mono tracking-widest uppercase relative z-10">Max payload: 5MB</p>
                 <input type="file" ref={fileInputRef} className="hidden" accept=".csv" onChange={handleFileChange} tabIndex={-1} />
+              </div>
+
+              {/* CSV FORMAT REQUIREMENTS — always visible */}
+              <div className="bg-slate-900/70 border border-slate-800 rounded-sm p-4 shrink-0 font-mono">
+                <p className="text-[11px] font-bold text-[#D4AF37] uppercase tracking-widest mb-3 flex items-center gap-2">
+                  <ShieldCheck className="w-3.5 h-3.5" /> &gt; Format Spec
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-[10px]">
+                  <div>
+                    <p className="text-slate-400 font-bold uppercase tracking-wider mb-1">Required columns</p>
+                    <ul className="text-slate-500 space-y-0.5">
+                      <li>&bull; Manufacturer Part Number (MPN)</li>
+                      <li>&bull; Quantity</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="text-slate-400 font-bold uppercase tracking-wider mb-1">Optional columns</p>
+                    <ul className="text-slate-500 space-y-0.5">
+                      <li>&bull; Manufacturer</li>
+                      <li>&bull; Target Price (Optional)</li>
+                      <li>&bull; Lead Time (Weeks)</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="text-slate-400 font-bold uppercase tracking-wider mb-1">MPN format</p>
+                    <ul className="space-y-0.5">
+                      <li className="text-emerald-400/80">&#x2713; STM32F405RGT6</li>
+                      <li className="text-emerald-400/80">&#x2713; ATMEGA328P-PU</li>
+                      <li className="text-emerald-400/80">&#x2713; 1N4148/SOD-323</li>
+                      <li className="text-red-400/80">&#x2717; "ATMEGA 328" (no spaces)</li>
+                      <li className="text-red-400/80">&#x2717; "PART#1" (no special chars)</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="text-slate-400 font-bold uppercase tracking-wider mb-1">Limits</p>
+                    <ul className="text-slate-500 space-y-0.5">
+                      <li>&bull; Max 5MB file size</li>
+                      <li>&bull; Max {MAX_BOM_ROWS} parts per upload</li>
+                      <li>&bull; MPN length: 2&ndash;50 characters</li>
+                      <li>&bull; Allowed: A-Z, 0-9, '-' '/' '.' '_'</li>
+                    </ul>
+                  </div>
+                </div>
               </div>
 
               <div className="bg-slate-900 border border-slate-800 rounded-sm p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shrink-0">

@@ -1,6 +1,41 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import * as Sentry from "https://deno.land/x/sentry/index.mjs";
 import { getValidNexarToken } from "./auth.ts";
+
+const SENTRY_DSN = Deno.env.get('SENTRY_DSN');
+if (SENTRY_DSN) {
+  Sentry.init({
+    dsn: SENTRY_DSN,
+    environment: Deno.env.get('SENTRY_ENVIRONMENT') ?? 'production',
+    tracesSampleRate: 0.1,
+  });
+}
+
+// Format: starts with alphanumeric, then alphanumerics + - / . _, total length 2-50.
+const MPN_REGEX = /^[A-Z0-9][A-Z0-9\-\/\._]{1,49}$/i;
+const MAX_MPNS_PER_REQUEST = 100;
+const MAX_LIFECYCLE_SCAN = 200;
+
+function validateMpnList(input: unknown, max: number): string[] {
+  if (!Array.isArray(input)) throw new Error("Payload 'mpns' must be an array.");
+  if (input.length === 0) throw new Error("Payload 'mpns' cannot be empty.");
+  if (input.length > max) {
+    throw new Error(`Too many MPNs: ${input.length}. Max ${max} per request.`);
+  }
+  const cleaned: string[] = [];
+  for (const raw of input) {
+    if (typeof raw !== 'string') {
+      throw new Error(`Invalid MPN type: expected string, got ${typeof raw}.`);
+    }
+    const trimmed = raw.trim();
+    if (!MPN_REGEX.test(trimmed)) {
+      throw new Error(`Invalid MPN format: "${raw}". Allowed: A-Z, 0-9, '-', '/', '.', '_', length 2-50.`);
+    }
+    cleaned.push(trimmed);
+  }
+  return cleaned;
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -51,19 +86,19 @@ serve(async (req) => {
     // ACTION 1: BATCHED ALTERNATIVES
     // ========================================================================
     if (action === 'get_batched_alternatives') {
-      if (!mpns || !Array.isArray(mpns)) throw new Error("Array of MPNs required.");
+      const validMpns = validateMpnList(mpns, MAX_MPNS_PER_REQUEST);
 
       const { data: cachedRecords } = await supabaseAdmin
         .from('nexar_cache')
         .select('*')
-        .in('mpn', mpns);
+        .in('mpn', validMpns);
 
       const now = Date.now();
       const validCache = new Map();
       const staleOrMissing: string[] = [];
       const cachedMap = new Map((cachedRecords || []).map(c => [c.mpn, c]));
 
-      for (const currentMpn of mpns) {
+      for (const currentMpn of validMpns) {
         const cachedItem = cachedMap.get(currentMpn);
         if (!forceRefresh && cachedItem && (now - new Date(cachedItem.last_scanned).getTime() < 7 * 24 * 60 * 60 * 1000)) {
           validCache.set(currentMpn, cachedItem.data);
@@ -126,19 +161,28 @@ serve(async (req) => {
     // ACTION 2: SCAN LIFECYCLE 
     // ========================================================================
     if (action === 'scan_lifecycle') {
-      if (!tenant_id) throw new Error("Tenant ID is required.");
+      if (!tenant_id || typeof tenant_id !== 'string') throw new Error("Tenant ID is required.");
 
       const { data: bomRecords, error: dbError } = await supabaseUserClient
         .from('bom_records')
         .select('*, workspace:workspaces(name)')
-        .eq('tenant_id', tenant_id);
+        .eq('tenant_id', tenant_id)
+        .limit(MAX_LIFECYCLE_SCAN);
 
       if (dbError) throw dbError;
       if (!bomRecords || bomRecords.length === 0) {
          return new Response(JSON.stringify([]), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
-      const queries = bomRecords.map((record: any) => ({ mpn: record.mpn }));
+      // Filter out any historical garbage MPNs before hitting Nexar — protects quota.
+      const sanitizedRecords = bomRecords.filter(
+        (r: any) => typeof r.mpn === 'string' && MPN_REGEX.test(r.mpn.trim())
+      );
+      if (sanitizedRecords.length === 0) {
+        return new Response(JSON.stringify([]), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      const queries = sanitizedRecords.map((record: any) => ({ mpn: record.mpn.trim() }));
 
       const query = `
         query GetLifecycle($queries: [SupPartMatchQuery!]!) {
@@ -183,8 +227,9 @@ serve(async (req) => {
 
   } catch (error: any) {
     console.error("Proxy Error:", error.message);
-    return new Response(JSON.stringify({ error: error.message }), { 
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    Sentry.captureException(error, { tags: { function: 'nexar-proxy' } });
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 });

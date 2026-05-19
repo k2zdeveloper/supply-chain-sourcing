@@ -564,4 +564,4 @@ export const AuthPortal = memo(({ stagedBom }: AuthPortalProps) => {
   );
 });
 
-AuthPortal.displayName = 'AuthPortal';
+AuthPortal.displayName = 'AuthPortal';  

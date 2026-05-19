@@ -1,7 +1,17 @@
 // supabase/functions/create-payment-intent/index.ts
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import * as Sentry from "https://deno.land/x/sentry/index.mjs"
 // Deno securely imports NPM packages dynamically. No node_modules required.
 import Stripe from 'npm:stripe@^14.0.0'
+
+const SENTRY_DSN = Deno.env.get('SENTRY_DSN')
+if (SENTRY_DSN) {
+  Sentry.init({
+    dsn: SENTRY_DSN,
+    environment: Deno.env.get('SENTRY_ENVIRONMENT') ?? 'production',
+    tracesSampleRate: 0.1,
+  })
+}
 
 // Initialize Stripe strictly using the environment variable vault
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') as string, {
@@ -53,6 +63,7 @@ serve(async (req) => {
       }
     )
   } catch (error: any) {
+    Sentry.captureException(error, { tags: { function: 'create-payment-intent' } })
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,

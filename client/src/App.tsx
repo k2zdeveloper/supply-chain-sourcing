@@ -2,6 +2,7 @@ import React, { Component, type ErrorInfo, type ReactNode, Suspense, lazy, useSt
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { ShieldAlert, RefreshCcw, Home, Loader2, Database, Shield, Settings, TerminalSquare } from 'lucide-react';
+import * as Sentry from '@sentry/react';
 
 import { useAuthStore } from '@/stores/useAuthStore';
 import { createWorkspace, addBomRows } from '@/features/bom/api';
@@ -124,7 +125,10 @@ type ErrorBoundaryState = { hasError: boolean; error: Error | null; };
 export class ErrorBoundary extends Component<{children?: ReactNode}, ErrorBoundaryState> {
   public state: ErrorBoundaryState = { hasError: false, error: null };
   public static getDerivedStateFromError(error: Error): ErrorBoundaryState { return { hasError: true, error }; }
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) { console.error('Fatal React Error:', error, errorInfo); }
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('Fatal React Error:', error, errorInfo);
+    Sentry.captureException(error, { contexts: { react: { componentStack: errorInfo.componentStack } } });
+  }
   public render() {
     if (this.state.hasError) {
       return (
