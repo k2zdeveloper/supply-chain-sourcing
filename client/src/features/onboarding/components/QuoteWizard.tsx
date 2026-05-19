@@ -68,6 +68,55 @@ const PROCESSING_LOGS = [
   "> FINALIZING DATA PAYLOAD..."
 ];
 
+// Always-visible reference for valid MPN format. CSV variant also shows column names.
+const FormatRequirementsPanel = ({ variant }: { variant: 'csv' | 'manual' }) => (
+  <div className="bg-slate-900/70 border border-slate-800 rounded-sm p-4 shrink-0 font-mono">
+    <p className="text-[11px] font-bold text-[#D4AF37] uppercase tracking-widest mb-3 flex items-center gap-2">
+      <ShieldCheck className="w-3.5 h-3.5" /> &gt; Format Spec
+    </p>
+    <div className={`grid grid-cols-1 ${variant === 'csv' ? 'md:grid-cols-2' : 'md:grid-cols-2'} gap-x-6 gap-y-3 text-[10px]`}>
+      {variant === 'csv' && (
+        <>
+          <div>
+            <p className="text-slate-400 font-bold uppercase tracking-wider mb-1">Required columns</p>
+            <ul className="text-slate-500 space-y-0.5">
+              <li>&bull; Manufacturer Part Number (MPN)</li>
+              <li>&bull; Quantity</li>
+            </ul>
+          </div>
+          <div>
+            <p className="text-slate-400 font-bold uppercase tracking-wider mb-1">Optional columns</p>
+            <ul className="text-slate-500 space-y-0.5">
+              <li>&bull; Manufacturer</li>
+              <li>&bull; Target Price (Optional)</li>
+              <li>&bull; Lead Time (Weeks)</li>
+            </ul>
+          </div>
+        </>
+      )}
+      <div>
+        <p className="text-slate-400 font-bold uppercase tracking-wider mb-1">MPN format</p>
+        <ul className="space-y-0.5">
+          <li className="text-emerald-400/80">&#x2713; STM32F405RGT6</li>
+          <li className="text-emerald-400/80">&#x2713; ATMEGA328P-PU</li>
+          <li className="text-emerald-400/80">&#x2713; 1N4148/SOD-323</li>
+          <li className="text-red-400/80">&#x2717; "ATMEGA 328" (no spaces)</li>
+          <li className="text-red-400/80">&#x2717; "PART#1" (no special chars)</li>
+        </ul>
+      </div>
+      <div>
+        <p className="text-slate-400 font-bold uppercase tracking-wider mb-1">Limits</p>
+        <ul className="text-slate-500 space-y-0.5">
+          {variant === 'csv' && <li>&bull; Max 5MB file size</li>}
+          <li>&bull; Max {MAX_BOM_ROWS} parts per project</li>
+          <li>&bull; MPN length: 2&ndash;50 characters</li>
+          <li>&bull; Allowed: A-Z, 0-9, '-' '/' '.' '_'</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+);
+
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
@@ -368,48 +417,7 @@ export const QuoteWizard = memo(({ onSuccess, defaultStep = 'select-method' }: Q
                 <input type="file" ref={fileInputRef} className="hidden" accept=".csv" onChange={handleFileChange} tabIndex={-1} />
               </div>
 
-              {/* CSV FORMAT REQUIREMENTS — always visible */}
-              <div className="bg-slate-900/70 border border-slate-800 rounded-sm p-4 shrink-0 font-mono">
-                <p className="text-[11px] font-bold text-[#D4AF37] uppercase tracking-widest mb-3 flex items-center gap-2">
-                  <ShieldCheck className="w-3.5 h-3.5" /> &gt; Format Spec
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-[10px]">
-                  <div>
-                    <p className="text-slate-400 font-bold uppercase tracking-wider mb-1">Required columns</p>
-                    <ul className="text-slate-500 space-y-0.5">
-                      <li>&bull; Manufacturer Part Number (MPN)</li>
-                      <li>&bull; Quantity</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <p className="text-slate-400 font-bold uppercase tracking-wider mb-1">Optional columns</p>
-                    <ul className="text-slate-500 space-y-0.5">
-                      <li>&bull; Manufacturer</li>
-                      <li>&bull; Target Price (Optional)</li>
-                      <li>&bull; Lead Time (Weeks)</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <p className="text-slate-400 font-bold uppercase tracking-wider mb-1">MPN format</p>
-                    <ul className="space-y-0.5">
-                      <li className="text-emerald-400/80">&#x2713; STM32F405RGT6</li>
-                      <li className="text-emerald-400/80">&#x2713; ATMEGA328P-PU</li>
-                      <li className="text-emerald-400/80">&#x2713; 1N4148/SOD-323</li>
-                      <li className="text-red-400/80">&#x2717; "ATMEGA 328" (no spaces)</li>
-                      <li className="text-red-400/80">&#x2717; "PART#1" (no special chars)</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <p className="text-slate-400 font-bold uppercase tracking-wider mb-1">Limits</p>
-                    <ul className="text-slate-500 space-y-0.5">
-                      <li>&bull; Max 5MB file size</li>
-                      <li>&bull; Max {MAX_BOM_ROWS} parts per upload</li>
-                      <li>&bull; MPN length: 2&ndash;50 characters</li>
-                      <li>&bull; Allowed: A-Z, 0-9, '-' '/' '.' '_'</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
+              <FormatRequirementsPanel variant="csv" />
 
               <div className="bg-slate-900 border border-slate-800 rounded-sm p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shrink-0">
                 <div className="space-y-1">
@@ -428,14 +436,16 @@ export const QuoteWizard = memo(({ onSuccess, defaultStep = 'select-method' }: Q
             <form onSubmit={handleSubmit(onSubmitManual)} className="flex flex-col gap-6 flex-1 min-h-0 animate-in slide-in-from-right-12 fade-in duration-500 ease-out">
               <div className="space-y-2 shrink-0">
                 <label className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-widest pl-1 font-mono">&gt; Project Name</label>
-                <input 
-                  {...register('projectName')} 
-                  className="w-full bg-[#020617] border border-slate-700 rounded-sm px-4 py-3 text-white text-sm font-mono focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] outline-none transition-all shadow-sm placeholder:text-slate-600" 
-                  placeholder="E.G., DRONE V4 MAINBOARD" 
+                <input
+                  {...register('projectName')}
+                  className="w-full bg-[#020617] border border-slate-700 rounded-sm px-4 py-3 text-white text-sm font-mono focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] outline-none transition-all shadow-sm placeholder:text-slate-600"
+                  placeholder="E.G., DRONE V4 MAINBOARD"
                   autoFocus
                 />
                 {errors.projectName && <p className="text-[10px] text-red-400 font-bold pl-1 font-mono uppercase">{errors.projectName.message}</p>}
               </div>
+
+              <FormatRequirementsPanel variant="manual" />
 
               <div className="flex-1 flex flex-col bg-[#020617]/50 rounded-sm border border-slate-800 p-2 overflow-hidden min-h-0">
                 <div className="flex items-center justify-between px-3 py-2 shrink-0">
