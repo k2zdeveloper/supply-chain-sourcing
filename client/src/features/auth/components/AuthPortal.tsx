@@ -275,16 +275,16 @@ export const AuthPortal = memo(({ stagedBom }: AuthPortalProps) => {
       {/* Header */}
       <div className="space-y-2 text-center mb-8 relative z-10">
         <h3 className="text-xl font-black tracking-[0.1em] text-white uppercase flex items-center justify-center gap-2">
-          <Terminal className="w-5 h-5 text-[#D4AF37]" />
+          
           {step === 'intent' && 'Access Gateway'}
           {step === 'login' && 'System Authorization'}
           {step === 'capture' && 'Establish Clearance'}
           {step === 'verify' && 'Verify Identity'}
         </h3>
         <p className="text-xs text-[#B48A2D] uppercase tracking-widest">
-          {step === 'intent' && '> Login or initialize a new profile.'}
-          {step === 'login' && '> Enter credentials to access data.'}
-          {step === 'capture' && '> Clearance required to process payload.'}
+          {step === 'intent' && ' SIGN UP OR LOG IN TO CONTINUE.'}
+          {step === 'login' && ' Enter credentials to access data.'}
+          {step === 'capture' && 'Clearance required to process payload.'}
           {step === 'verify' && '> Secure token sent to corporate comms.'}
         </p>
       </div>
@@ -303,13 +303,13 @@ export const AuthPortal = memo(({ stagedBom }: AuthPortalProps) => {
       {step === 'intent' && (
         <div className="grid gap-4 animate-in slide-in-from-bottom-4 relative z-10">
           <button onClick={() => setStep('capture')} className="w-full bg-[#D4AF37] hover:bg-[#FCD34D] text-black font-black uppercase tracking-widest rounded-sm px-4 py-3.5 transition-all focus:outline-none shadow-[0_0_15px_rgba(212,175,55,0.2)]">
-            Initialize New Profile
+            CREATE ACCOUNT
           </button>
           <div className="pt-4 text-center">
             <p className="text-xs text-slate-500 uppercase tracking-widest">
-              Already have clearance?{' '}
+              Already have an Account?{' '}
               <button onClick={() => setStep('login')} className="text-[#D4AF37] hover:text-white font-bold transition-colors focus:outline-none focus-visible:underline">
-                Authenticate Here.
+                LOGIN HERE
               </button>
             </p>
           </div>
@@ -321,7 +321,7 @@ export const AuthPortal = memo(({ stagedBom }: AuthPortalProps) => {
         <form onSubmit={loginForm.handleSubmit(onSubmitLogin)} className="space-y-5 animate-in slide-in-from-right-4 relative z-10">
           {!stagedBom && (
             <button type="button" onClick={() => setStep('intent')} className="text-[10px] font-bold text-slate-500 hover:text-[#D4AF37] uppercase tracking-widest transition-colors flex items-center gap-1.5 mb-4 outline-none group">
-              <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" /> Abort
+              <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" /> Back
             </button>
           )}
 
@@ -379,18 +379,18 @@ export const AuthPortal = memo(({ stagedBom }: AuthPortalProps) => {
           
           {!stagedBom && (
             <button type="button" onClick={() => setStep('intent')} className="text-[10px] font-bold text-slate-500 hover:text-[#D4AF37] uppercase tracking-widest transition-colors flex items-center gap-1.5 mb-2 outline-none group">
-              <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" /> Abort
+              <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" /> Back
             </button>
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">First Name</label>
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Given Name</label>
               <input {...captureForm.register('firstName')} className="w-full bg-slate-900/50 border border-slate-700 rounded-sm px-4 py-3 text-white text-sm focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] outline-none transition-all placeholder:text-slate-600" placeholder="John" />
               {captureForm.formState.errors.firstName && <p className="text-[9px] text-red-400 uppercase pl-1">{captureForm.formState.errors.firstName.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Last Name</label>
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Family Name</label>
               <input {...captureForm.register('lastName')} className="w-full bg-slate-900/50 border border-slate-700 rounded-sm px-4 py-3 text-white text-sm focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] outline-none transition-all placeholder:text-slate-600" placeholder="Doe" />
               {captureForm.formState.errors.lastName && <p className="text-[9px] text-red-400 uppercase pl-1">{captureForm.formState.errors.lastName.message}</p>}
             </div>
@@ -459,7 +459,7 @@ export const AuthPortal = memo(({ stagedBom }: AuthPortalProps) => {
             </div>
             
             <div className="space-y-1.5 relative">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Confirm</label>
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Re-Enter Passphrase</label>
               <div className="relative">
                 <input 
                   {...captureForm.register('confirmPassword')} 
@@ -564,4 +564,4 @@ export const AuthPortal = memo(({ stagedBom }: AuthPortalProps) => {
   );
 });
 
-AuthPortal.displayName = 'AuthPortal';  
+AuthPortal.displayName = 'AuthPortal';

@@ -3,7 +3,10 @@ import {
   Zap, Loader2, BrainCircuit, CheckCircle2, ArrowLeft, LogIn, 
   Menu, X, Home, Globe, Briefcase, Banknote, Code, Wrench, Network, 
   Terminal, Server, MapPin, TrendingUp, Cpu, Clock, GraduationCap,
-  TerminalSquare, ChevronRight
+  TerminalSquare, ChevronRight,
+  Microchip,
+  DollarSign,
+  DollarSignIcon
 } from 'lucide-react';
 
 import { QuoteWizard, type ParsedBomPayload } from '@/features/onboarding/components/QuoteWizard';
@@ -171,7 +174,8 @@ export default function LandingPage() {
         </div>
 
         <div className="relative z-10 w-full max-w-[1600px] mx-auto flex flex-col justify-between min-h-[70vh] gap-12 lg:gap-0 pt-10">
-            
+            <br />
+
             <div className="max-w-4xl text-center md:text-left mt-10 md:mt-0">
                 <div className="animate-on-load inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900/80 border border-[#423005]/50 mb-6 cursor-help" title="Press '~' to open override console" style={{ animationDelay: '0.2s' }}>
                     <span className="w-2 h-2 rounded-full bg-[#D4AF37] animate-pulse shadow-[0_0_8px_rgba(212,175,55,1)]"></span>
@@ -183,8 +187,8 @@ export default function LandingPage() {
                     <span className="text-transparent bg-clip-text bg-gradient-to-br from-white via-[#FDE047] to-[#8C6819]">ENGINEERING FELLOWSHIP</span>
                 </h2>
                 
-                <p className="animate-on-load text-sm md:text-xl text-white mb-10 max-w-2xl mx-auto md:mx-0 font-light leading-relaxed" style={{ animationDelay: '0.6s' }}>
-                    Help build the future infrastructure layer for AI-assisted engineering.
+                <p className="animate-on-load  text-white mb-10 max-w-2xl mx-auto md:mx-1 font-light leading-relaxed" style={{ animationDelay: '0.6s' }}>
+                    Engineering the foundational framework that powers tomorrow's AI collaboration
                 </p>
 
                 <div className="animate-on-load flex flex-col sm:flex-row items-center gap-4 justify-center md:justify-start" style={{ animationDelay: '0.8s' }}>
@@ -198,16 +202,21 @@ export default function LandingPage() {
             </div>
 
             {/* The Floating Highlight Chips */}
-            <div className="flex flex-wrap justify-center md:justify-end gap-3 sm:gap-6 mt-auto pb-10">
-                <FloatingChip icon={Home} label="REMOTE SETUP" delay="1.0s" />
-                <FloatingChip icon={Globe} label="GLOBAL OEMs" delay="1.1s" />
-                <FloatingChip icon={Briefcase} label="REAL EXPOSURE" delay="1.2s" />
-                
-                <div className="hover:bg-[#D4AF37]/40 animate-pop-in flex flex-col items-center justify-center backdrop-blur-md bg-[#D4AF37]/10 border-2 border-[#D4AF37] rounded-full w-24 h-24 md:w-28 md:h-28 text-center shadow-[0_0_15px_rgba(212,175,55,0.3)] cursor-pointer" style={{ animationDelay: '1.3s' }}>
-                    <Banknote className="w-5 h-5 md:w-8 md:h-8 text-[#D4AF37] mb-1" />
-                    <p className="text-[8px] md:text-[10px] text-[#D4AF37] font-black uppercase">PAID</p>
+            <div className="flex flex-wrap justify-center md:justify-end gap-3 sm:gap-6 mt-auto pb-10  ">
+                <div className="hover:bg-[#D4AF37]/40 animate-pop-in flex flex-col items-center justify-center backdrop-blur-md bg-[#D4AF37]/10 border-2 rounded-full w-24 h-24 md:w-28 md:h-28 text-center shadow-[0_0_15px_rgba(212,175,55,0.3)] cursor-pointer" style={{ animationDelay: '1s' }}>
+                <FloatingChip icon={Home} label="REMOTE SETUP" />
                 </div>
+                <div className="hover:bg-[#D4AF37]/40 animate-pop-in flex flex-col items-center justify-center backdrop-blur-md bg-[#D4AF37]/10 border-2 rounded-full w-24 h-24 md:w-28 md:h-28 text-center shadow-[0_0_15px_rgba(212,175,55,0.3)] cursor-pointer" style={{ animationDelay: '1.1s' }}>
+                <FloatingChip icon={Globe} label="GLOBAL OEMs"  />
+                </div>
+               <div className="hover:bg-[#D4AF37]/40 animate-pop-in flex flex-col items-center justify-center backdrop-blur-md bg-[#D4AF37]/10 border-2 rounded-full w-24 h-24 md:w-28 md:h-28 text-center shadow-[0_0_15px_rgba(212,175,55,0.3)] cursor-pointer" style={{ animationDelay: '1.2s' }}>
+                <FloatingChip icon={Briefcase} label="REAL EXPOSURE"  />
+                </div>
+                <div className="hover:bg-[#D4AF37]/40 animate-pop-in flex flex-col items-center justify-center backdrop-blur-md bg-[#D4AF37]/10 border-2 border-[#D4AF37] rounded-full w-24 h-24 md:w-28 md:h-28 text-center shadow-[0_0_15px_rgba(212,175,55,0.3)] cursor-pointer" style={{ animationDelay: '1.3s' }}>
+                <FloatingChip icon={DollarSign} label="PAID" />
+                </div>               
             </div>
+            
         </div>
       </section>
 
@@ -219,7 +228,7 @@ export default function LandingPage() {
             
             <div className="text-center mb-12 animate-on-load">
                 <h2 className="text-3xl font-black text-white tracking-[0.1em] mb-2 font-mono uppercase">
-                    Let's build your BOM.
+                    Let's build your BOM
                 </h2>
                 <p className="text-[#B48A2D] text-sm font-mono tracking-widest uppercase">
                     &gt; Initialize Engine Below
@@ -238,7 +247,7 @@ export default function LandingPage() {
                   </div>
                   <div className="font-mono text-xs text-slate-500 uppercase tracking-widest flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-[#D4AF37] animate-pulse"></span>
-                      SCS_ENGINE_CORE.EXE
+                      SCS ENGINE CORE.EXE
                   </div>
                   <div><Server className="w-4 h-4 text-slate-600" /></div>
               </div>
@@ -254,7 +263,8 @@ export default function LandingPage() {
                     <path d="M 50,250 L 100,250 L 150,200" />
                 </svg>
                 
-                <div className="relative z-10 w-full">
+                <div className="
+                 z-10 w-full">
                   {portalMode === 'wizard' && (
                       !stagedBom ? (
                       <QuoteWizard onSuccess={(payload) => setStagedBom(payload)} />
@@ -274,7 +284,7 @@ export default function LandingPage() {
                           onClick={() => setPortalMode('wizard')} 
                           className="mb-4 text-xs font-bold text-slate-400 hover:text-[#FCD34D] transition-colors flex items-center gap-1.5 focus:outline-none rounded p-1 -ml-1 group font-mono"
                       >
-                          <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" /> &gt; Back to Engine
+                          <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" /> Back to Engine
                       </button>
                       <Suspense fallback={<PortalLoader />}>
                           <AuthPortal key={portalMode} initialStep={portalMode === 'auth-login' ? 'login' : 'intent'} />
@@ -286,7 +296,6 @@ export default function LandingPage() {
             </div>
         </div>
       </section>
-
       {/* =====================================================================
           ABOUT US & PILLARS
           ===================================================================== */}
@@ -294,46 +303,46 @@ export default function LandingPage() {
         <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ backgroundImage: `linear-gradient(to right, rgba(212, 175, 55, 0.5) 1px, transparent 1px), linear-gradient(to bottom, rgba(212, 175, 55, 0.5) 1px, transparent 1px)`, backgroundSize: '40px 40px' }} />
 
         <div className="max-w-[1600px] mx-auto px-6 relative z-10 w-full">
-            <div className="text-center mb-10 md:mb-14 animate-on-load">
+            <div className="text-center mb-10 md:mb-14 animate-on-load"><br /><br />
                 <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-[#FCD34D] inline-block mb-2 tracking-tight uppercase">
                     About Us
                 </h2>
                 <div className="h-[1px] w-16 bg-[#D4AF37]/50 mx-auto shadow-[0_0_8px_rgba(212,175,55,0.8)]"></div>
             </div>
 
-            <div className="max-w-5xl mx-auto mb-16">
-                <p className="animate-on-load text-slate-300 text-lg md:text-xl text-center leading-relaxed font-light mb-12" style={{ animationDelay: '0.2s' }}>
+            <div className="max-w-5xl mx-auto mb-10">
+                <p className="animate-on-load text-white text-lg md:text-xl text-center leading-relaxed font-light mb-2" style={{ animationDelay: '0.2s' }}>
                     Building a new generation of <span className="text-[#FCD34D] font-medium" style={{ textShadow: '0 0 10px rgba(212,175,55,0.3)' }}>AI-assisted engineering infrastructure</span> connecting global manufacturers, engineers, and future technical leaders.
                 </p>
                 
-                <div className="animate-on-load grid sm:grid-cols-2 gap-x-8 md:gap-x-12 gap-y-8 text-sm md:text-base border-t border-slate-800/30 pt-10" style={{ animationDelay: '0.4s' }}>
-                    <div className="space-y-4">
-                        <p className="text-slate-400 leading-relaxed">
-                            At <span className="text-white font-medium">AI² Engineering</span>, we architect the future manufacturing landscape by bridging the gap between high-level intelligent systems and foundational hardware.
-                        </p>
-                        <p className="text-slate-500 text-[10px] md:text-[11px] uppercase tracking-[0.2em] font-bold">CORE MISSION: RESILIENCE & EFFICIENCY</p>
-                    </div>
-                    <div className="space-y-4">
-                        <p className="text-slate-400 leading-relaxed">
-                            Supporting semiconductor and OEM giants, we provide the backend intelligence needed for rapid automation through the <span className="text-[#D4AF37] italic">synergy of human intuition and AI.</span>
-                        </p>
-                        <p className="text-slate-500 text-[10px] md:text-[11px] uppercase tracking-[0.2em] font-bold">STATUS: INNOVATION & PRECISION</p>
-                    </div>
-                </div>
+<div className="animate-on-load grid sm:grid-cols-2 gap-x-8 md:gap-x-12 gap-y-10 text-sm md:text-base border-t border-slate-800/30 pt-10" style={{ animationDelay: '0.4s' }}>
+    <div className="space-y-6">
+        <p className="text-white leading-relaxed tracking-wide">
+            At <span className="text-[#D4AF37] font-medium">AI² Engineering</span>, we architect the future manufacturing landscape by bridging the gap between high-level intelligent systems and foundational hardware.
+        </p>
+        <p className="text-slate-500 text-[10px] md:text-[11px] uppercase tracking-[0.2em] font-bold">
+            CORE MISSION: RESILIENCE & EFFICIENCY
+        </p>
+    </div>
+    <div className="space-y-6">
+        <p className="text-white leading-relaxed tracking-wide">
+            Supporting semiconductor and OEM giants, we provide the backend intelligence needed for rapid automation through the <span className="text-[#D4AF37] italic">synergy of human intuition and AI.</span>
+        </p>
+        <p className="text-slate-500 text-[10px] md:text-[11px] uppercase tracking-[0.2em] font-bold">
+            CORE FOCUS: INNOVATION & PRECISION
+        </p>
+    </div>
+</div>
             </div>
 
             <div className="grid grid-cols-4 gap-2 md:gap-4 lg:gap-6 max-w-5xl mx-auto">
+                <div className="">
                 <PillarCard icon={Server} subtitle="Architecture" title="Remote Setup" delay="0.5s" />
-                <PillarCard icon={Globe} subtitle="Network" title="Global OEMs" delay="0.6s" />
-                <PillarCard icon={Cpu} subtitle="Processing" title="Real Exposure" delay="0.7s" />
-                
-                <div className="group microchip-container animate-pop-in" style={{ animationDelay: '0.8s' }}>
-                    <div className="microchip-body p-2 sm:p-3 md:p-4 flex flex-col items-center text-center min-h-[90px] sm:min-h-[110px] md:min-h-[130px] justify-center border-[#D4AF37]/40 bg-slate-900/40 shadow-[0_0_15px_rgba(212,175,55,0.1)] backdrop-blur-md transition-all duration-300">
-                        <Banknote className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-[#FCD34D] mb-1.5 md:mb-2 drop-shadow-[0_0_8px_rgba(212,175,55,0.6)]" />
-                        <p className="text-[7px] sm:text-[8px] md:text-[9px] text-[#FCD34D] uppercase font-black tracking-wider mb-0.5">Compensation</p>
-                        <h3 className="font-black text-[#FCD34D] text-[9px] sm:text-xs md:text-sm tracking-tight leading-tight">IT IS PAID</h3>
-                    </div>
                 </div>
+                <PillarCard icon={Globe} subtitle="Network" title="Global OEMs" delay="0.6s" />
+                <PillarCard icon={Briefcase} subtitle="Processing" title="Real Exposure" delay="0.7s" />
+                <PillarCard icon={DollarSign} subtitle="Compensation" title="Paid Roles" delay="0.8s" />
+
             </div>
         </div>
       </section>
@@ -357,16 +366,16 @@ export default function LandingPage() {
                     <span className="w-3 h-[1px] bg-[#D4AF37] shrink-0"></span> What You'll Work On
                 </h3>
                 <ul className="space-y-5">
-                    <WhoItem icon={Code} title="Full-Stack Dev" desc="Platform architecture & logic layers." />
-                    <WhoItem icon={Wrench} title="Engineering & Technical Support" isSimple />
-                    <WhoItem icon={Network} title="BOM & Supply Chain Intelligence" isSimple />
-                    <WhoItem icon={BrainCircuit} title="AI-Assisted Engineering Operations" isSimple />
+                    <WhoItem icon={Code} title="Full-Stack Dev" desc="Platform architecture & logic layers" />
+                    <WhoItem icon={Wrench} title="Technical Support" desc="Optimizing systems & infrastructure" />
+                    <WhoItem icon={Network} title="Supply Chain Intelligence" desc="BOM automation & data flows" />
+                    <WhoItem icon={BrainCircuit} title="AI Engineering Operations"desc="Scaling continuous deployment loops" />
                 </ul>
             </div>
 
             <div className="lg:px-8 border-t lg:border-t-0 lg:border-l border-slate-800 pt-8 lg:pt-0">
                 <h3 className="text-[10px] sm:text-xs font-black text-[#D4AF37] mb-6 tracking-[0.2em] uppercase flex items-center gap-2">
-                    <span className="w-3 h-[1px] bg-[#D4AF37] shrink-0"></span> Input Requirements
+                    <span className="w-3 h-[1px] bg-[#D4AF37] shrink-0"></span>  SYSTEM INPUTS
                 </h3>
                 <ul className="space-y-6">
                     <ReqItem icon={Cpu} title="Background" desc="Electronics Engineering, Mechanical Engineering, or Software Dev with hardware affinity." />
@@ -378,8 +387,10 @@ export default function LandingPage() {
                 <h3 className="text-[10px] sm:text-xs font-black text-[#D4AF37] mb-6 tracking-[0.2em] uppercase flex items-center gap-2">
                     <span className="w-3 h-[1px] bg-[#D4AF37] shrink-0"></span> What You'll Gain
                 </h3>
-                <ul className="space-y-4">
-                    <UpgradeItem text="Real-world engineering exposure" />
+                <ul className="space-y-5">
+                    <div className="text-base md:text-lg font-medium">
+                    <UpgradeItem text="Real-world engineering exposure"/>
+                    </div>
                     <UpgradeItem text="Mentorship from industry professionals" />
                     <UpgradeItem text="Hands-on learning beyond university curriculum" />
                     <UpgradeItem text="Career growth & leadership pathways" />
@@ -396,21 +407,12 @@ export default function LandingPage() {
             <div className="absolute top-0 right-0 w-64 h-64 border-t border-r border-[#D4AF37]/20 rounded-tr-3xl -mt-4 -mr-4 pointer-events-none"></div>
             
             <h2 className="text-xl md:text-2xl font-black text-white mb-8 flex items-center gap-3 uppercase font-mono tracking-wide">
-                <Terminal className="w-6 h-6 text-[#D4AF37]" />
+              
                 Compensation & System Setup
             </h2>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 relative z-10">
-                <div className="bg-slate-900 border border-[#D4AF37]/50 rounded p-5 flex flex-col items-start gap-4 shadow-[0_0_15px_rgba(212,175,55,0.1)] hover:-translate-y-1 transition-transform">
-                    <div className="p-2 bg-[#D4AF37]/10 rounded border border-[#D4AF37]/30 text-[#FCD34D]">
-                        <Banknote className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <span className="font-black text-[#FCD34D] tracking-widest text-sm uppercase block font-mono mb-1">IT IS PAID</span>
-                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest block font-mono">Guaranteed</span>
-                    </div>
-                </div>
-
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 relative z-10">    
+                <CompCard icon={DollarSign} title="Paid Roles" desc="Guaranteed" />          
                 <CompCard icon={Clock} title="Flexible Schedules" desc="Work asynchronously" />
                 <CompCard icon={MapPin} title="Remote-Friendly" desc="Global connectivity" />
                 <CompCard icon={TrendingUp} title="Performance Growth" desc="Merit-based scaling" />
@@ -422,6 +424,7 @@ export default function LandingPage() {
           APPLY TERMINAL FORM
           ===================================================================== */}
       <section id="apply-terminal" className="max-w-3xl mx-auto px-6 py-24 relative z-20 w-full -mt-20">
+        <br /><br />
         <div className="animate-on-load bg-[#020617] border border-slate-800 rounded shadow-[0_0_50px_rgba(0,0,0,0.8)] relative overflow-hidden">
             
             <div className="bg-slate-900 border-b border-[#423005]/50 p-3 flex items-center justify-between">
@@ -433,7 +436,8 @@ export default function LandingPage() {
                 <div className="font-mono text-xs text-slate-500 uppercase tracking-widest">
                     AI2 RECRUITMENT.EXE
                 </div>
-                <div><Terminal className="w-4 h-4 text-slate-600" /></div>
+                <div><Server className="w-4 h-4 text-slate-600" /></div>
+               
             </div>
 
             <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent"></div>
@@ -441,14 +445,14 @@ export default function LandingPage() {
             <div className="p-8 md:p-12 relative">
                 <svg className="absolute bottom-0 right-0 w-64 h-64 opacity-5 pointer-events-none" fill="none" stroke="#D4AF37" strokeWidth="2">
                     <path d="M 100,200 L 150,200 L 200,150 L 250,150" />
-                    <circle cx="250" cy="150" r="4" fill="#D4AF37" />
+                    <circle cx="250" cy="150" r="4" fill="#D4AF37"/>
                     <path d="M 50,250 L 100,250 L 150,200" />
                 </svg>
 
                 {formStatus === 'idle' && (
                     <>
-                        <div className="mb-10 text-center animate-on-load" style={{ animationDelay: '0.2s' }}>
-                            <h2 className="text-3xl font-black text-white tracking-[0.1em] mb-2 font-mono">INITIALIZE CONNECTION</h2>
+                        <div className="mb-3 text-center animate-on-load" style={{ animationDelay: '0.2s' }}>
+                            <h2 className="text-2xl font-black text-white tracking-[0.1em] mb-1 font-mono">INITIALIZE CONNECTION</h2>
                             <p className="text-[#B48A2D] text-sm font-mono tracking-widest uppercase">&gt; Awaiting Data Input...</p>
                         </div>
 
@@ -465,7 +469,7 @@ export default function LandingPage() {
 
                             <div className="relative group animate-on-load" style={{ animationDelay: '0.5s' }}>
                                 <label className="block text-xs font-mono text-slate-400 uppercase tracking-widest mb-2 group-focus-within:text-[#FCD34D] transition-colors">Application Letter</label>
-                                <textarea required rows={4} className="w-full bg-slate-900/50 border border-slate-700 text-white font-mono text-sm p-4 rounded-sm focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-all placeholder:text-slate-600 resize-none" placeholder="Drop your LinkedIn/Portfolio link or a brief message..."></textarea>
+                                <textarea required rows={3} className="w-full bg-slate-900/50 border border-slate-700 text-white font-mono text-sm p-4 rounded-sm focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-all placeholder:text-slate-600 resize-none" placeholder="Drop your LinkedIn/Portfolio link or a brief message..."></textarea>
                             </div>
 
                             <div className="pt-6 flex justify-end border-t border-slate-800 animate-on-load" style={{ animationDelay: '0.6s' }}>
@@ -484,7 +488,7 @@ export default function LandingPage() {
                     <div className="flex flex-col justify-center items-center py-12">
                         <Loader2 className="w-12 h-12 text-[#D4AF37] animate-spin mb-6" />
                         <h3 className="text-xl font-black text-white tracking-[0.1em] font-mono mb-2 animate-pulse">TRANSMITTING...</h3>
-                        <p className="text-[#D4AF37] font-mono text-xs">&gt; Establishing secure connection to AI2 servers</p>
+                        <p className="text-[#D4AF37] font-mono text-xs">Establishing secure connection to AI2 servers</p>
                     </div>
                 )}
 
@@ -494,7 +498,7 @@ export default function LandingPage() {
                             <CheckCircle2 className="w-16 h-16" />
                         </div>
                         <h3 className="text-2xl font-black text-white tracking-[0.1em] font-mono mb-2">SUCCESS</h3>
-                        <p className="text-slate-400 font-mono text-sm mb-8">&gt; Data transmitted. We will contact you soon.</p>
+                        <p className="text-slate-400 font-mono text-sm mb-8">Data transmitted. We will contact you soon.</p>
                         <button onClick={() => setFormStatus('idle')} className="px-8 py-3 border border-[#D4AF37] text-[#D4AF37] font-mono text-sm hover:bg-[#D4AF37] hover:text-black transition-colors">
                             CLOSE LINK
                         </button>
@@ -511,13 +515,13 @@ export default function LandingPage() {
         <div className="absolute inset-0 pointer-events-none mix-blend-screen opacity-10" style={{ backgroundImage: `linear-gradient(to right, rgba(212, 175, 55, 0.5) 1px, transparent 1px), linear-gradient(to bottom, rgba(212, 175, 55, 0.5) 1px, transparent 1px)`, backgroundSize: '20px 20px' }} />
 
         {/* The Exact Core Fellowship Motto */}
-        <div className="relative z-10 max-w-4xl mx-auto text-center mb-20 border-b border-slate-900 pb-12">
+        <div className="relative z-10 max-w-4xl mx-auto text-center mb-5 border-b border-slate-900 pb-12">
             <h2 className="text-2xl md:text-3xl font-black text-white tracking-[0.2em] mb-4">
-                BUILD. LEARN. IMPACT THE FUTURE.
-            </h2>
+    BUILD  <span className="font-normal md:text-4xl text-[#FCD34D]">|</span>  IMPACT THE FUTURE <span className="font-normal md:text-4xl text-[#FCD34D]">|</span> LEARN
+</h2>
             <div className="w-24 h-1 bg-[#D4AF37] mx-auto rounded my-4 shadow-[0_0_10px_rgba(212,175,55,0.5)]" />
             <p className="text-[#FCD34D] tracking-wider text-xs md:text-sm font-bold uppercase mt-6">
-                EXPOSURE + LEARNING + REAL INDUSTRY EXPERIENCE = YOUR FUTURE STARTS HERE.
+                EXPOSURE + LEARNING + REAL INDUSTRY EXPERIENCE = YOUR FUTURE STARTS HERE
             </p>
         </div>
 
@@ -526,13 +530,13 @@ export default function LandingPage() {
                 <div className="md:col-span-1">
                     <h2 className="text-xl font-black text-white tracking-wide flex items-center mb-4">
                         AI<sup className="text-[#D4AF37] ml-0.5">2</sup>
-                        <span className="ml-2 font-light text-slate-300">ENGINEERING</span>
+                        <span className="ml-2 font-light text-white">ENGINEERING</span>
                     </h2>
                     <p className="text-slate-500 text-sm leading-relaxed font-light mb-6">
                         Architecting the support layer connecting global manufacturers, engineers, and intelligent hardware systems.
                     </p>
                     <div className="flex gap-4 items-center">
-                        <div className="w-2 h-2 rounded-full bg-[#D4AF37] shadow-[0_0_8px_rgba(212,175,55,0.8)]"></div>
+                        <div className="w-2 h-2 rounded-full bg-[#D4AF37] shadow-[0_0_8px_rgba(212,175,55,0.8)] animate-pulse"></div>
                         <span className="text-[10px] text-[#D4AF37] font-mono tracking-widest uppercase">System Online</span>
                     </div>
                 </div>
@@ -542,8 +546,8 @@ export default function LandingPage() {
                         <span className="w-2 h-[2px] bg-[#D4AF37]"></span> Links
                     </h3>
                     <ul className="space-y-4">
-                        <li><button onClick={() => scrollToSection('apply-terminal')} className="text-[#D4AF37] hover:text-[#FCD34D] transition-colors text-sm font-mono">&gt; Apply Now</button></li>
-                        <li><button onClick={() => scrollToSection('engine-portal')} className="text-[#D4AF37] hover:text-[#FCD34D] transition-colors text-sm font-mono">&gt; Test Engine</button></li>
+                        <li><button onClick={() => scrollToSection('apply-terminal')} className="text-[#D4AF37] hover:text-white transition-colors text-sm font-mono">&gt; Apply Now</button></li>
+                        <li><button onClick={() => scrollToSection('engine-portal')} className="text-[#D4AF37] hover:text-white transition-colors text-sm font-mono">&gt; Test Engine</button></li>
                     </ul>
                 </div>
 
@@ -552,8 +556,8 @@ export default function LandingPage() {
                         <span className="w-2 h-[2px] bg-[#D4AF37]"></span> Docs
                     </h3>
                     <ul className="space-y-4">
-                        <li><a href="#" className="text-slate-400 hover:text-[#FCD34D] transition-colors text-sm font-mono">&gt; Privacy Policy</a></li>
-                        <li><a href="#" className="text-slate-400 hover:text-[#FCD34D] transition-colors text-sm font-mono">&gt; Terms of Service</a></li>
+                        <li><a href="" className="text-slate-400 hover:text-[#FCD34D] transition-colors text-sm font-mono">&gt; Privacy Policy</a></li>
+                        <li><a href="" className="text-slate-400 hover:text-[#FCD34D] transition-colors text-sm font-mono">&gt; Terms of Service</a></li>
                     </ul>
                 </div>
 
@@ -564,8 +568,8 @@ export default function LandingPage() {
                     <ul className="space-y-4">
                         <li>
                             <a href="mailto:careers@ai2engineering.com" className="text-slate-400 hover:text-[#FCD34D] transition-colors text-sm flex items-center gap-3">
-                                <Terminal className="w-4 h-4" />
-                                careers@ai2engineering.com
+                                
+                               &gt; careers@ai2engineering.com
                             </a>
                         </li>
                     </ul>
