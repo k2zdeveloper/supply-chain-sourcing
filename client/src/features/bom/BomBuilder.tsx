@@ -339,38 +339,79 @@ export default function BomBuilder() {
     setIsUploading(true); setUploadProgress(10);
 
     Papa.parse<Record<string, string | undefined>>(uploadedFile, {
-      header: true, skipEmptyLines: true, worker: true,
+      header: true, skipEmptyLines: true, dynamicTyping: false,
       complete: async (results: ParseResult<Record<string, string | undefined>>) => {
         try {
+          if (!results.data || results.data.length === 0) {
+            throw new Error('The CSV file appears to be empty or has no data rows.');
+          }
+
+          // Log detected headers so user can debug column mismatches
+          const detectedHeaders = Object.keys(results.data[0] || {});
+          console.log('[CSV Upload] Detected headers:', detectedHeaders);
+          console.log('[CSV Upload] First row sample:', results.data[0]);
+
           const itemsToInsert: PendingBomRow[] = [];
           setUploadProgress(30);
-          
+
           results.data.forEach((row, index) => {
-            const rawMpn = row['Manufacturer Part Number (MPN)'] || row['MPN'];
-            const rawQty = String(row['Quantity'] || row['Qty'] || '').replace(/,/g, ''); 
-            const rawPrice = String(row['Target Price (Optional)'] || row['Target Price'] || '').replace(/[^0-9.]/g, '');
+            // Normalize all headers to lowercase for case-insensitive matching
+            const r: Record<string, string | undefined> = {};
+            for (const key in row) {
+              r[key.trim().toLowerCase()] = row[key];
+            }
+
+            const rawMpn = (
+              r['manufacturer part number (mpn)'] ||
+              r['mpn'] ||
+              r['part number'] ||
+              r['part_number'] ||
+              r['part no'] ||
+              r['part no.'] ||
+              r['component']
+            );
+            const rawQty = String(r['quantity'] || r['qty'] || r['count'] || '1').replace(/,/g, '');
+            const rawPrice = String(r['target price (optional)'] || r['target price'] || r['target_price'] || r['price'] || r['unit price'] || '').replace(/[^0-9.]/g, '');
+
+            if (!rawMpn || !String(rawMpn).trim()) {
+              console.warn(`[CSV Upload] Row ${index + 1} skipped — no MPN found. Keys available: ${Object.keys(r).join(', ')}`);
+              return;
+            }
 
             const rawData = {
-              mpn: rawMpn ? String(rawMpn).trim().toUpperCase() : '',
-              manufacturer: (row['Manufacturer'] || row['Mfr'])?.trim() || 'Unknown',
-              quantity: parseInt(rawQty, 10) || 0,
-              target_price: parseFloat(rawPrice) || null,
-              lead_time_weeks: parseInt(String(row['Lead Time (Weeks)']), 10) || null
+              mpn: String(rawMpn).trim().toUpperCase(),
+              manufacturer: (r['manufacturer'] || r['mfr'] || r['manufacturer name'] || r['mfg'])?.trim() || 'Unknown',
+              quantity: Math.max(1, parseInt(rawQty, 10) || 1),
+              target_price: parseFloat(rawPrice) > 0 ? parseFloat(rawPrice) : null,
+              lead_time_weeks: parseInt(String(r['lead time (weeks)'] || r['lead_time_weeks'] || r['lead time'] || ''), 10) || null
             };
 
             const validatedRow = csvRowSchema.safeParse(rawData);
-            if (!validatedRow.success) throw new Error(`We found an issue on row ${index + 1}: ${validatedRow.error.issues[0].message}`);
+            if (!validatedRow.success) {
+              console.warn(`[CSV Upload] Row ${index + 1} skipped — validation: ${validatedRow.error.issues[0].message}`, rawData);
+              return;
+            }
 
             itemsToInsert.push({
               ...validatedRow.data,
-              tenant_id: user.id, workspace_id: activeWorkspaceId,
-              lifecycle_status: 'Active' as LifecycleStatus, global_stock: 0, 
-              risk_level: 'low' as RiskLevel, alternates: [],
+              tenant_id: user.id,
+              workspace_id: activeWorkspaceId,
+              lifecycle_status: 'Active' as LifecycleStatus,
+              global_stock: 0,
+              risk_level: 'low' as RiskLevel,
+              alternates: [],
               lead_time_weeks: validatedRow.data.lead_time_weeks || null
             });
           });
 
-          if (itemsToInsert.length === 0) throw new Error("We couldn't find any valid parts in that document.");
+          console.log(`[CSV Upload] Parsed ${itemsToInsert.length} valid rows from ${results.data.length} total rows`);
+
+          if (itemsToInsert.length === 0) {
+            throw new Error(
+              `No valid parts found. Check your CSV headers — expected a column named "MPN", "Part Number", or "Manufacturer Part Number (MPN)". Detected headers: ${Object.keys(results.data[0] || {}).join(', ')}`
+            );
+          }
+
           setUploadProgress(50);
 
           const CHUNK_SIZE = 500;
@@ -383,14 +424,22 @@ export default function BomBuilder() {
           await queryClient.invalidateQueries({ queryKey: ['workspaces'] });
           showNotification('Upload Complete', `Added ${itemsToInsert.length} parts to your project.`, 'success');
 
-        } catch (err: unknown) { 
-          showNotification('Upload Paused', err instanceof Error ? err.message : 'Something went wrong reading your file.', 'error');
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : 'Something went wrong reading your file.';
+          console.error('[CSV Upload] Failed:', msg);
+          showNotification('Upload Failed', msg, 'error');
         } finally {
           setTimeout(() => {
             setIsUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
           }, 500);
         }
+      },
+      error: (err) => {
+        console.error('[CSV Upload] PapaParse error:', err);
+        showNotification('Upload Failed', `Could not read the file: ${err.message}`, 'error');
+        setIsUploading(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
       }
     });
   }, [user, activeWorkspaceId, queryClient, showNotification]);
