@@ -457,15 +457,15 @@ export default function BomBuilder() {
 
   if (isLoadingWorkspaces) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-slate-50/50 min-h-[calc(100vh-3.5rem)] font-sans">
-        <Loader2 className="w-6 h-6 animate-spin text-blue-600 mb-3" />
+      <div className="flex-1 flex flex-col items-center justify-center bg-[#020617] min-h-[calc(100vh-3.5rem)] font-sans">
+        <Loader2 className="w-6 h-6 animate-spin text-[#D4AF37] mb-3" />
         <p className="text-[10px] font-bold text-slate-500 tracking-widest uppercase animate-pulse">Loading Workspace</p>
       </div>
     );
   }
 
   return (
-    <div className={`flex flex-col h-full min-h-[calc(100vh-4rem)] bg-white rounded-2xl shadow-sm border border-slate-200/60 font-sans relative overflow-hidden transition-all duration-700 ease-out m-4 md:m-6 lg:m-8 max-w-[1400px] mx-auto ${isMounted ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
+    <div className={`flex flex-col h-full min-h-[calc(100vh-4rem)] bg-slate-900 rounded-2xl shadow-sm border border-slate-700/60 font-sans relative overflow-hidden transition-all duration-700 ease-out m-4 md:m-6 lg:m-8 max-w-[1400px] mx-auto ${isMounted ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
       <GlobalNotification notification={notification} onClose={() => setNotification(null)} />
       <ConfirmModal config={modalConfig} onClose={closeConfirmModal} />
 
@@ -477,15 +477,15 @@ export default function BomBuilder() {
 
       {/* CSV Processing Overlay */}
       {isUploading && (
-        <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-white/95 backdrop-blur-md animate-in fade-in duration-300">
+        <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-slate-900/95 backdrop-blur-md animate-in fade-in duration-300">
           <div className="relative w-16 h-16 mb-5 flex items-center justify-center">
-            <div className="absolute inset-0 bg-blue-500/10 rounded-full animate-ping" />
-            <div className="absolute inset-2 bg-blue-600/20 rounded-full animate-pulse" />
-            <Database className="w-6 h-6 text-blue-600 relative z-10" />
+            <div className="absolute inset-0 bg-[#D4AF37]/10 rounded-full animate-ping" />
+            <div className="absolute inset-2 bg-[#D4AF37]/20 rounded-full animate-pulse" />
+            <Database className="w-6 h-6 text-[#D4AF37] relative z-10" />
           </div>
-          <h3 className="text-xl font-extrabold text-slate-900 mb-2 tracking-tight">Processing Parts</h3>
-          <div className="w-48 h-1.5 bg-slate-100 rounded-full overflow-hidden shadow-inner">
-            <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-300 ease-out" style={{ width: `${uploadProgress}%` }} />
+          <h3 className="text-xl font-extrabold text-white mb-2 tracking-tight">Processing Parts</h3>
+          <div className="w-48 h-1.5 bg-slate-800 rounded-full overflow-hidden shadow-inner">
+            <div className="h-full bg-gradient-to-r from-[#D4AF37] to-[#FCD34D] transition-all duration-300 ease-out" style={{ width: `${uploadProgress}%` }} />
           </div>
           <p className="text-slate-500 text-[10px] mt-3 font-bold tracking-widest uppercase">{uploadProgress}% Complete</p>
         </div>
@@ -494,33 +494,33 @@ export default function BomBuilder() {
       {/* Add Component Modal */}
       {isAddModalOpen && (
         <div className="absolute inset-0 z-[80] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-300">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200 ring-1 ring-slate-900/5 flex flex-col">
-            <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-white shrink-0">
-              <h3 className="text-lg font-extrabold text-slate-900 flex items-center gap-2 tracking-tight"><Plus className="w-4 h-4 text-blue-600"/> Add a Part</h3>
-              <button onClick={() => { setIsAddModalOpen(false); addPartForm.reset(); }} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-md focus:outline-none transition-colors"><X className="w-4 h-4"/></button>
+          <div className="bg-slate-900 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200 ring-1 ring-slate-700 flex flex-col">
+            <div className="flex items-center justify-between p-5 border-b border-slate-700 bg-slate-800/50 shrink-0">
+              <h3 className="text-lg font-extrabold text-white flex items-center gap-2 tracking-tight"><Plus className="w-4 h-4 text-[#D4AF37]"/> Add a Part</h3>
+              <button onClick={() => { setIsAddModalOpen(false); addPartForm.reset(); }} className="p-1.5 text-slate-400 hover:bg-slate-700 hover:text-white rounded-md focus:outline-none transition-colors"><X className="w-4 h-4"/></button>
             </div>
-            <form onSubmit={handleAddPartSubmit} className="p-5 space-y-4 bg-slate-50/50 flex-1">
+            <form onSubmit={handleAddPartSubmit} className="p-5 space-y-4 bg-slate-900/50 flex-1">
               <div className="space-y-1.5">
                 <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest pl-1">Part Number (MPN)</label>
-                <input {...addPartForm.register('mpn')} autoFocus className="w-full border border-slate-200/80 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 uppercase shadow-sm transition-all" placeholder="STM32F405" />
-                {addPartForm.formState.errors.mpn && <p className="text-[9px] text-red-500 font-bold pl-1">{addPartForm.formState.errors.mpn.message}</p>}
+                <input {...addPartForm.register('mpn')} autoFocus className="w-full border border-slate-700 bg-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-bold text-white outline-none focus:border-[#D4AF37]/50 focus:ring-2 focus:ring-[#D4AF37]/20 uppercase shadow-sm transition-all placeholder:text-slate-500" placeholder="STM32F405" />
+                {addPartForm.formState.errors.mpn && <p className="text-[9px] text-red-400 font-bold pl-1">{addPartForm.formState.errors.mpn.message}</p>}
               </div>
               <div className="space-y-1.5">
                 <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest pl-1">Manufacturer</label>
-                <input {...addPartForm.register('manufacturer')} className="w-full border border-slate-200/80 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 shadow-sm transition-all" placeholder="Optional" />
+                <input {...addPartForm.register('manufacturer')} className="w-full border border-slate-700 bg-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-bold text-white outline-none focus:border-[#D4AF37]/50 focus:ring-2 focus:ring-[#D4AF37]/20 shadow-sm transition-all placeholder:text-slate-500" placeholder="Optional" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest pl-1">Quantity</label>
-                  <input type="number" min="1" {...addPartForm.register('quantity', { setValueAs: (v) => v === '' ? undefined : parseInt(v, 10) })} className="w-full border border-slate-200/80 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 shadow-sm transition-all" />
+                  <input type="number" min="1" {...addPartForm.register('quantity', { setValueAs: (v) => v === '' ? undefined : parseInt(v, 10) })} className="w-full border border-slate-700 bg-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-bold text-white outline-none focus:border-[#D4AF37]/50 focus:ring-2 focus:ring-[#D4AF37]/20 shadow-sm transition-all" />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest pl-1">Target Price</label>
-                  <input type="number" step="0.001" {...addPartForm.register('target_price', { setValueAs: (v) => v === '' ? undefined : parseFloat(v) })} className="w-full border border-slate-200/80 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 shadow-sm transition-all" placeholder="$0.00" />
+                  <input type="number" step="0.001" {...addPartForm.register('target_price', { setValueAs: (v) => v === '' ? undefined : parseFloat(v) })} className="w-full border border-slate-700 bg-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-bold text-white outline-none focus:border-[#D4AF37]/50 focus:ring-2 focus:ring-[#D4AF37]/20 shadow-sm transition-all placeholder:text-slate-500" placeholder="$0.00" />
                 </div>
               </div>
               <div className="pt-3">
-                <button type="submit" disabled={addPartMutation.isPending} className="w-full py-3 text-xs font-bold text-white bg-slate-900 hover:bg-black rounded-xl flex items-center justify-center gap-1.5 shadow-md focus:outline-none disabled:opacity-50 active:scale-95 transition-all">
+                <button type="submit" disabled={addPartMutation.isPending} className="w-full py-3 text-xs font-bold text-black bg-[#D4AF37] hover:bg-[#B48A2D] rounded-xl flex items-center justify-center gap-1.5 shadow-md focus:outline-none disabled:opacity-50 active:scale-95 transition-all">
                   {addPartMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin"/> : 'Save to Project'}
                 </button>
               </div>
@@ -530,11 +530,11 @@ export default function BomBuilder() {
       )}
 
       {/* HEADER & DROPDOWN VIEW */}
-      <header className="relative bg-white border-b border-slate-200/60 px-5 py-4 shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-4 z-[60]">
-        
+      <header className="relative bg-slate-900 border-b border-slate-700/60 px-5 py-4 shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-4 z-[60]">
+
         {/* Workspace Selector */}
         <div className="relative">
-          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1.5"><Layers className="w-3 h-3" /> Active Workspace</p>
+          <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1 flex items-center gap-1.5"><Layers className="w-3 h-3 text-[#D4AF37]" /> Active Workspace</p>
           <div className="flex items-center gap-2">
             {isRenaming ? (
               <div className="flex items-center gap-1.5 animate-in fade-in slide-in-from-left-2">
@@ -542,37 +542,37 @@ export default function BomBuilder() {
                   type="text" value={renameValue} 
                   onChange={e => { setRenameValue(e.target.value); if (renameError) setRenameError(null); }} 
                   onKeyDown={e => { if (e.key === 'Enter') handleRenameSave(); }}
-                  className={`border ${renameError ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'} rounded-lg px-2.5 py-1.5 text-sm font-extrabold text-slate-900 outline-none shadow-sm transition-all`}
-                  autoFocus 
+                  className={`border ${renameError ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-700 bg-slate-800 focus:border-[#D4AF37]/50 focus:ring-2 focus:ring-[#D4AF37]/20'} rounded-lg px-2.5 py-1.5 text-sm font-extrabold text-white outline-none shadow-sm transition-all`}
+                  autoFocus
                 />
-                <button onClick={handleRenameSave} disabled={renameMutation.isPending} className="p-1.5 bg-emerald-50 text-emerald-600 rounded-md hover:bg-emerald-100 focus:outline-none disabled:opacity-50 transition-colors">
+                <button onClick={handleRenameSave} disabled={renameMutation.isPending} className="p-1.5 bg-emerald-900/20 text-emerald-400 rounded-md hover:bg-emerald-900/40 focus:outline-none disabled:opacity-50 transition-colors">
                   {renameMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4"/>}
                 </button>
-                <button onClick={() => { setIsRenaming(false); setRenameError(null); }} className="p-1.5 bg-slate-50 text-slate-500 rounded-md hover:bg-slate-100 focus:outline-none transition-colors"><X className="w-4 h-4"/></button>
+                <button onClick={() => { setIsRenaming(false); setRenameError(null); }} className="p-1.5 bg-slate-800 text-slate-400 rounded-md hover:bg-slate-700 focus:outline-none transition-colors"><X className="w-4 h-4"/></button>
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center gap-1.5 text-xl font-extrabold tracking-tight text-slate-900 hover:text-blue-600 focus:outline-none transition-colors group">
-                  {activeWorkspace?.name || 'Select a Project'} 
-                  <div className={`w-5 h-5 rounded-md bg-slate-50 flex items-center justify-center group-hover:bg-blue-50 transition-all duration-300 ${isDropdownOpen ? 'rotate-180 bg-blue-100' : ''}`}>
-                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-500 transition-colors" />
+                <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center gap-1.5 text-xl font-extrabold tracking-tight text-white hover:text-[#FCD34D] focus:outline-none transition-colors group">
+                  {activeWorkspace?.name || 'Select a Project'}
+                  <div className={`w-5 h-5 rounded-md bg-slate-800 flex items-center justify-center group-hover:bg-[#D4AF37]/10 transition-all duration-300 ${isDropdownOpen ? 'rotate-180 bg-[#D4AF37]/20' : ''}`}>
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#FCD34D] transition-colors" />
                   </div>
                 </button>
                 
                 {/* Feature 15: Contextual Workspace Menu */}
                 {activeWorkspace && (
                   <div className="relative">
-                    <button onClick={() => setIsWorkspaceMenuOpen(!isWorkspaceMenuOpen)} className="p-1 text-slate-300 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors focus:outline-none ml-1">
+                    <button onClick={() => setIsWorkspaceMenuOpen(!isWorkspaceMenuOpen)} className="p-1 text-slate-500 hover:text-white hover:bg-slate-800 rounded-md transition-colors focus:outline-none ml-1">
                       <MoreVertical className="w-4 h-4" />
                     </button>
                     {isWorkspaceMenuOpen && (
                       <>
                         <div className="fixed inset-0 z-[65]" onClick={() => setIsWorkspaceMenuOpen(false)}></div>
-                        <div className="absolute top-full left-0 mt-1 w-32 bg-white border border-slate-200/80 shadow-lg rounded-xl z-[70] overflow-hidden animate-in fade-in slide-in-from-top-1 py-1">
-                          <button onClick={() => { setRenameValue(activeWorkspace.name); setRenameError(null); setIsRenaming(true); setIsWorkspaceMenuOpen(false); }} className="w-full text-left px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-blue-600 flex items-center gap-2 transition-colors focus:outline-none">
+                        <div className="absolute top-full left-0 mt-1 w-32 bg-slate-900 border border-slate-700 shadow-2xl rounded-xl z-[70] overflow-hidden animate-in fade-in slide-in-from-top-1 py-1">
+                          <button onClick={() => { setRenameValue(activeWorkspace.name); setRenameError(null); setIsRenaming(true); setIsWorkspaceMenuOpen(false); }} className="w-full text-left px-3 py-2 text-xs font-bold text-slate-300 hover:bg-slate-800 hover:text-[#FCD34D] flex items-center gap-2 transition-colors focus:outline-none">
                             <Edit2 className="w-3.5 h-3.5" /> Rename
                           </button>
-                          <button onClick={() => confirmAction("Delete Project", "This will permanently erase your BOM.", "Delete", "danger", () => { if (activeWorkspaceId) deleteWorkspaceMutation.mutate(activeWorkspaceId); setIsWorkspaceMenuOpen(false); })} className="w-full text-left px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors focus:outline-none">
+                          <button onClick={() => confirmAction("Delete Project", "This will permanently erase your BOM.", "Delete", "danger", () => { if (activeWorkspaceId) deleteWorkspaceMutation.mutate(activeWorkspaceId); setIsWorkspaceMenuOpen(false); })} className="w-full text-left px-3 py-2 text-xs font-bold text-red-400 hover:bg-red-900/20 flex items-center gap-2 transition-colors focus:outline-none">
                             <Trash2 className="w-3.5 h-3.5" /> Delete
                           </button>
                         </div>
@@ -587,14 +587,14 @@ export default function BomBuilder() {
           {/* Feature 20: Dropdown Blur Backdrop */}
           {isDropdownOpen && (
             <>
-              <div className="fixed inset-0 z-[55] bg-slate-900/5 backdrop-blur-[1px] animate-in fade-in duration-200" onClick={() => setIsDropdownOpen(false)}></div>
-              <div className="absolute top-full left-0 mt-2 w-full md:w-[320px] bg-white border border-slate-200/80 shadow-xl rounded-xl z-[60] overflow-hidden animate-in fade-in slide-in-from-top-2 flex flex-col">
-                <div className="p-2 border-b border-slate-100 bg-slate-50/50">
+              <div className="fixed inset-0 z-[55] bg-black/60 backdrop-blur-[1px] animate-in fade-in duration-200" onClick={() => setIsDropdownOpen(false)}></div>
+              <div className="absolute top-full left-0 mt-2 w-full md:w-[320px] bg-slate-900 border border-slate-700 shadow-2xl rounded-xl z-[60] overflow-hidden animate-in fade-in slide-in-from-top-2 flex flex-col">
+                <div className="p-2 border-b border-slate-700 bg-slate-800/50">
                   <div className="relative">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                    <input 
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
+                    <input
                       type="text" autoFocus placeholder="Find project..." value={projectSearchTerm} onChange={(e) => setProjectSearchTerm(e.target.value)}
-                      className="w-full pl-8 pr-3 py-2 bg-white border border-slate-200/80 rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm transition-all placeholder:text-slate-400 placeholder:font-medium"
+                      className="w-full pl-8 pr-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs font-bold text-white focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/20 focus:border-[#D4AF37]/50 shadow-sm transition-all placeholder:text-slate-500 placeholder:font-medium"
                     />
                   </div>
                 </div>
@@ -603,37 +603,37 @@ export default function BomBuilder() {
                     <div className="p-4 text-center text-slate-500 text-[10px] font-bold uppercase tracking-widest">No matches found.</div>
                   ) : (
                     filteredWorkspaces.map(ws => (
-                      <button 
-                        key={ws.id} 
-                        onClick={() => { setActiveWorkspaceId(ws.id); setIsDropdownOpen(false); setSelectedIds(new Set()); setProjectSearchTerm(''); }} 
-                        className={`w-full text-left px-2.5 py-2 rounded-lg flex items-center gap-3 focus:outline-none transition-all mb-0.5 
-                          ${ws.id === activeWorkspaceId ? 'bg-blue-50/80 border border-blue-100/50' : 'hover:bg-slate-50 border border-transparent'}
+                      <button
+                        key={ws.id}
+                        onClick={() => { setActiveWorkspaceId(ws.id); setIsDropdownOpen(false); setSelectedIds(new Set()); setProjectSearchTerm(''); }}
+                        className={`w-full text-left px-2.5 py-2 rounded-lg flex items-center gap-3 focus:outline-none transition-all mb-0.5
+                          ${ws.id === activeWorkspaceId ? 'bg-[#D4AF37]/10 border border-[#423005]/50' : 'hover:bg-slate-800 border border-transparent'}
                         `}
                       >
-                        <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 shadow-sm transition-colors ${ws.id === activeWorkspaceId ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200 text-slate-400'}`}>
+                        <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 shadow-sm transition-colors ${ws.id === activeWorkspaceId ? 'bg-[#D4AF37] text-black' : 'bg-slate-800 border border-slate-700 text-slate-400'}`}>
                           <Folder className="w-4 h-4" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <span className={`block text-xs font-extrabold truncate tracking-tight ${ws.id === activeWorkspaceId ? 'text-blue-900' : 'text-slate-900'}`}>{ws.name}</span>
+                          <span className={`block text-xs font-extrabold truncate tracking-tight ${ws.id === activeWorkspaceId ? 'text-[#FCD34D]' : 'text-slate-200'}`}>{ws.name}</span>
                           <span className="block text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Created {timeAgo(ws.created_at)}</span>
                         </div>
                       </button>
                     ))
                   )}
                 </div>
-                <div className="p-2 bg-slate-50 border-t border-slate-100">
+                <div className="p-2 bg-slate-800/50 border-t border-slate-700">
                   {isCreatingWorkspace ? (
                     <form onSubmit={handleCreateWorkspace} className="flex gap-1.5 animate-in fade-in slide-in-from-bottom-1">
-                      <input 
+                      <input
                         value={newWorkspaceName} onChange={(e) => setNewWorkspaceName(e.target.value)} placeholder="Name..." autoFocus
-                        className="flex-1 border border-slate-200/80 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm transition-all" 
+                        className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white outline-none focus:ring-2 focus:ring-[#D4AF37]/20 focus:border-[#D4AF37]/50 shadow-sm transition-all placeholder:text-slate-500"
                       />
-                      <button type="submit" disabled={createWorkspaceMutation.isPending || !newWorkspaceName.trim()} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold disabled:opacity-50 shadow-sm transition-all focus:outline-none">Save</button>
-                      <button type="button" onClick={() => setIsCreatingWorkspace(false)} className="text-slate-400 hover:bg-slate-200 px-2 py-1.5 rounded-lg transition-colors focus:outline-none"><X className="w-3.5 h-3.5" /></button>
+                      <button type="submit" disabled={createWorkspaceMutation.isPending || !newWorkspaceName.trim()} className="bg-[#D4AF37] hover:bg-[#B48A2D] text-black px-3 py-1.5 rounded-lg text-[10px] font-bold disabled:opacity-50 shadow-sm transition-all focus:outline-none">Save</button>
+                      <button type="button" onClick={() => setIsCreatingWorkspace(false)} className="text-slate-400 hover:bg-slate-800 hover:text-white px-2 py-1.5 rounded-lg transition-colors focus:outline-none"><X className="w-3.5 h-3.5" /></button>
                     </form>
                   ) : (
-                    <button onClick={() => setIsCreatingWorkspace(true)} className="w-full py-2 flex items-center justify-center gap-1.5 text-[11px] font-bold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 rounded-lg shadow-sm active:scale-[0.98] transition-all focus:outline-none">
-                      <Plus className="w-3.5 h-3.5 text-slate-400" /> Start New Project
+                    <button onClick={() => setIsCreatingWorkspace(true)} className="w-full py-2 flex items-center justify-center gap-1.5 text-[11px] font-bold text-slate-300 hover:text-white bg-slate-800 border border-slate-700 hover:bg-slate-700 rounded-lg shadow-sm active:scale-[0.98] transition-all focus:outline-none">
+                      <Plus className="w-3.5 h-3.5 text-[#D4AF37]" /> Start New Project
                     </button>
                   )}
                 </div>
@@ -644,10 +644,10 @@ export default function BomBuilder() {
 
         {/* Global Actions */}
         <div className="flex items-center gap-2">
-          <button onClick={() => fileInputRef.current?.click()} disabled={isUploading || !activeWorkspaceId} className="hidden lg:flex bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80 px-4 py-2.5 rounded-xl text-xs font-bold transition-all items-center gap-2 shadow-sm focus:outline-none disabled:opacity-50 active:scale-95">
-            {isUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500"/> : <FileSpreadsheet className="w-3.5 h-3.5 text-slate-400" />} Upload CSV
+          <button onClick={() => fileInputRef.current?.click()} disabled={isUploading || !activeWorkspaceId} className="hidden lg:flex bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 px-4 py-2.5 rounded-xl text-xs font-bold transition-all items-center gap-2 shadow-sm focus:outline-none disabled:opacity-50 active:scale-95">
+            {isUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin text-[#D4AF37]"/> : <FileSpreadsheet className="w-3.5 h-3.5 text-slate-500" />} Upload CSV
           </button>
-          <button onClick={() => setIsAddModalOpen(true)} disabled={!activeWorkspaceId} className="hidden md:flex bg-slate-900 hover:bg-black text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all items-center gap-1.5 shadow-sm focus:outline-none disabled:opacity-50 active:scale-95">
+          <button onClick={() => setIsAddModalOpen(true)} disabled={!activeWorkspaceId} className="hidden md:flex bg-[#D4AF37] hover:bg-[#B48A2D] text-black px-5 py-2.5 rounded-xl text-xs font-bold transition-all items-center gap-1.5 shadow-sm focus:outline-none disabled:opacity-50 active:scale-95">
             <Plus className="w-3.5 h-3.5" /> Add Part
           </button>
         </div>
@@ -655,44 +655,44 @@ export default function BomBuilder() {
 
       {/* MAIN VIEWPORT (Virtualized) */}
       {activeWorkspace ? (
-        <div className="flex-1 flex flex-col min-h-0 bg-white relative">
-          
-          {/* Feature 1: Dynamic Workspace Summary & Command Bar */}
-          <div className={`px-5 py-3 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0 transition-colors duration-300 ${selectedIds.size > 0 ? 'bg-blue-50/40' : 'bg-slate-50/50'}`}>
+        <div className="flex-1 flex flex-col min-h-0 bg-slate-900 relative">
+
+          {/* Command Bar */}
+          <div className={`px-5 py-3 border-b border-slate-700/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0 transition-colors duration-300 ${selectedIds.size > 0 ? 'bg-[#D4AF37]/5' : 'bg-slate-800/50'}`}>
             <div className="relative w-full sm:max-w-md flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Filter MPN or Manufacturer..." className="w-full bg-white border border-slate-200/80 focus:border-blue-400 rounded-xl pl-9 pr-8 py-2 text-xs font-bold text-slate-900 outline-none transition-all shadow-sm focus:ring-2 focus:ring-blue-500/20 placeholder:text-slate-400 placeholder:font-medium" />
-              {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-600 focus:outline-none"><X className="w-3.5 h-3.5"/></button>}
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Filter MPN or Manufacturer..." className="w-full bg-slate-800 border border-slate-700 focus:border-[#D4AF37]/50 rounded-xl pl-9 pr-8 py-2 text-xs font-bold text-white outline-none transition-all shadow-sm focus:ring-2 focus:ring-[#D4AF37]/20 placeholder:text-slate-500 placeholder:font-medium" />
+              {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white focus:outline-none"><X className="w-3.5 h-3.5"/></button>}
             </div>
-            
+
             <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
-              <div className="flex items-center gap-1.5 shrink-0"><Database className="w-3 h-3 text-slate-300"/> {filteredRecords.length} Lines</div>
-              <span className="w-1 h-1 rounded-full bg-slate-200 shrink-0"></span>
-              <div className="flex items-center gap-1.5 shrink-0"><CheckCircle2 className="w-3 h-3 text-slate-300"/> {filteredRecords.reduce((acc, r) => acc + r.quantity, 0).toLocaleString()} Units</div>
-              <span className="w-1 h-1 rounded-full bg-slate-200 shrink-0"></span>
-              <div className="flex items-center gap-1.5 text-slate-900 shrink-0"><DollarSign className="w-3 h-3 text-emerald-500"/> {formatCurrency(totalWorkspaceValue)} Est.</div>
+              <div className="flex items-center gap-1.5 shrink-0"><Database className="w-3 h-3 text-slate-600"/> {filteredRecords.length} Lines</div>
+              <span className="w-1 h-1 rounded-full bg-slate-700 shrink-0"></span>
+              <div className="flex items-center gap-1.5 shrink-0"><CheckCircle2 className="w-3 h-3 text-slate-600"/> {filteredRecords.reduce((acc, r) => acc + r.quantity, 0).toLocaleString()} Units</div>
+              <span className="w-1 h-1 rounded-full bg-slate-700 shrink-0"></span>
+              <div className="flex items-center gap-1.5 text-white shrink-0"><DollarSign className="w-3 h-3 text-[#D4AF37]"/> {formatCurrency(totalWorkspaceValue)} Est.</div>
             </div>
           </div>
 
           {/* VIRTUALIZED TABLE CONTAINER */}
-          <div ref={parentRef} className="flex-1 overflow-auto custom-scrollbar relative bg-white">
+          <div ref={parentRef} className="flex-1 overflow-auto custom-scrollbar relative bg-slate-900">
             {isLoadingRecords ? (
               <div className="flex flex-col items-center justify-center h-full text-slate-400 py-20 animate-in fade-in">
-                <Loader2 className="w-6 h-6 animate-spin mb-3 text-blue-500" /> 
+                <Loader2 className="w-6 h-6 animate-spin mb-3 text-[#D4AF37]" />
                 <span className="text-[10px] font-bold uppercase tracking-widest">Loading BOM Data...</span>
               </div>
             ) : filteredRecords.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-slate-400 py-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-5 ring-1 ring-slate-100 shadow-inner">
-                  <Cpu className="w-10 h-10 text-slate-300" />
+                <div className="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mb-5 ring-1 ring-slate-700 shadow-inner">
+                  <Cpu className="w-10 h-10 text-slate-600" />
                 </div>
-                <h3 className="text-lg font-extrabold text-slate-900 mb-1.5 tracking-tight">{searchTerm ? 'No matches found' : 'Workspace is Empty'}</h3>
+                <h3 className="text-lg font-extrabold text-white mb-1.5 tracking-tight">{searchTerm ? 'No matches found' : 'Workspace is Empty'}</h3>
                 <p className="text-xs font-medium text-slate-500 mb-5 text-center max-w-xs leading-relaxed">
                   {searchTerm ? 'Try adjusting your search criteria.' : 'Upload a CSV or add components manually to start building your BOM.'}
                 </p>
                 {!searchTerm && (
-                  <button onClick={() => fileInputRef.current?.click()} className="bg-white border border-slate-200/80 px-5 py-2.5 rounded-xl text-xs font-bold text-slate-700 shadow-sm hover:shadow-md hover:border-slate-300 transition-all active:scale-95 flex items-center gap-2 focus:outline-none">
-                    <FileSpreadsheet className="w-4 h-4 text-emerald-600"/> Select File
+                  <button onClick={() => fileInputRef.current?.click()} className="bg-slate-800 border border-slate-700 hover:border-[#423005]/50 hover:bg-[#D4AF37]/10 px-5 py-2.5 rounded-xl text-xs font-bold text-slate-300 hover:text-[#FCD34D] shadow-sm transition-all active:scale-95 flex items-center gap-2 focus:outline-none">
+                    <FileSpreadsheet className="w-4 h-4 text-[#D4AF37]"/> Select File
                   </button>
                 )}
               </div>
@@ -700,9 +700,9 @@ export default function BomBuilder() {
               <div className="w-full min-w-[900px]">
                 
                 {/* CSS-Grid Based Table Header (Stays sticky, won't break virtualization) */}
-                <div className="sticky top-0 z-10 bg-slate-50/90 backdrop-blur-md border-b border-slate-200/80 text-slate-400 text-[9px] font-bold uppercase tracking-widest flex items-center shadow-sm">
-                  <div className="w-12 px-4 py-3 flex items-center justify-center border-r border-slate-100/50">
-                    <input type="checkbox" onChange={selectAll} checked={selectedIds.size > 0 && selectedIds.size === filteredRecords.length} className="w-3.5 h-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer transition-all" />
+                <div className="sticky top-0 z-10 bg-slate-800/90 backdrop-blur-md border-b border-slate-700/60 text-slate-500 text-[9px] font-bold uppercase tracking-widest flex items-center shadow-sm">
+                  <div className="w-12 px-4 py-3 flex items-center justify-center border-r border-slate-700/40">
+                    <input type="checkbox" onChange={selectAll} checked={selectedIds.size > 0 && selectedIds.size === filteredRecords.length} className="w-3.5 h-3.5 rounded border-slate-600 text-[#D4AF37] focus:ring-[#D4AF37]/30 cursor-pointer transition-all" />
                   </div>
                   <div className="flex-1 min-w-[200px] px-4 py-3">Part Number</div>
                   <div className="w-48 px-4 py-3">Manufacturer</div>
@@ -738,7 +738,7 @@ export default function BomBuilder() {
           {selectedIds.size > 0 && (
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white rounded-2xl shadow-2xl px-4 py-3 flex items-center gap-4 z-50 animate-in slide-in-from-bottom-10 fade-in duration-300 ring-1 ring-white/10">
               <div className="flex items-center gap-3 border-r border-slate-700 pr-4">
-                <span className="bg-blue-600 text-white text-xs font-black px-2 py-0.5 rounded-md">{selectedIds.size}</span>
+                <span className="bg-[#D4AF37] text-black text-xs font-black px-2 py-0.5 rounded-md">{selectedIds.size}</span>
                 <span className="text-[10px] font-bold uppercase tracking-widest text-slate-300">Selected</span>
               </div>
               <div className="flex items-center gap-4">
@@ -751,7 +751,7 @@ export default function BomBuilder() {
                   <button 
                     onClick={() => generateQuoteMutation.mutate(Array.from(selectedIds))} 
                     disabled={generateQuoteMutation.isPending}
-                    className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 active:scale-95 disabled:opacity-50 focus:outline-none shadow-lg shadow-blue-500/20"
+                    className="bg-[#D4AF37] hover:bg-[#B48A2D] text-black px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 active:scale-95 disabled:opacity-50 focus:outline-none shadow-lg shadow-[#D4AF37]/20"
                   >
                     {generateQuoteMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShoppingCart className="w-3.5 h-3.5" />} 
                     Quote
@@ -763,9 +763,9 @@ export default function BomBuilder() {
           )}
         </div>
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center bg-slate-50/50 m-4 md:m-6 lg:m-8 rounded-3xl border border-dashed border-slate-300 animate-in fade-in duration-500">
-          <div className="w-20 h-20 bg-white shadow-sm rounded-full flex items-center justify-center mb-5 ring-1 ring-slate-900/5"><Layers className="w-8 h-8 text-blue-500" /></div>
-          <h2 className="text-2xl font-extrabold text-slate-900 mb-2 tracking-tight">Select a Project</h2>
+        <div className="flex-1 flex flex-col items-center justify-center bg-[#020617] m-4 md:m-6 lg:m-8 rounded-3xl border border-dashed border-slate-700 animate-in fade-in duration-500">
+          <div className="w-20 h-20 bg-[#D4AF37]/10 border border-[#423005]/50 rounded-full flex items-center justify-center mb-5"><Layers className="w-8 h-8 text-[#D4AF37]" /></div>
+          <h2 className="text-2xl font-extrabold text-white mb-2 tracking-tight">Select a Project</h2>
           <p className="text-slate-500 font-medium text-sm text-center max-w-sm">Use the dropdown menu to open an existing workspace or create a new one to get started.</p>
         </div>
       )}
@@ -807,25 +807,25 @@ const BomVirtualRow = memo(({ row, virtualRow, isSelected, onToggleSelect, onMan
         height: `${virtualRow.size}px`,
         transform: `translateY(${virtualRow.start}px)`
       }}
-      className={`flex items-center text-sm border-b border-slate-100 group transition-all duration-200 ${isSelected ? 'bg-blue-50/40' : 'bg-white hover:bg-slate-50/80 hover:shadow-[0_2px_8px_-4px_rgba(0,0,0,0.1)] hover:z-10 relative'}`}
+      className={`flex items-center text-sm border-b border-slate-700/40 group transition-all duration-200 ${isSelected ? 'bg-[#D4AF37]/5' : 'bg-slate-900 hover:bg-slate-800/50 hover:z-10 relative'}`}
     >
-      <div className="w-12 h-full flex items-center justify-center border-r border-slate-100/50">
-        <input type="checkbox" checked={isSelected} onChange={() => onToggleSelect(row.id)} className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer transition-all" />
+      <div className="w-12 h-full flex items-center justify-center border-r border-slate-700/40">
+        <input type="checkbox" checked={isSelected} onChange={() => onToggleSelect(row.id)} className="w-4 h-4 rounded border-slate-600 text-[#D4AF37] focus:ring-[#D4AF37]/30 cursor-pointer transition-all" />
       </div>
       
       <div className="flex-1 min-w-[200px] px-4 flex items-center gap-2.5">
-        <Cpu className={`w-4 h-4 shrink-0 transition-colors ${isCritical ? 'text-red-500' : 'text-slate-300 group-hover:text-blue-500'}`} />
+        <Cpu className={`w-4 h-4 shrink-0 transition-colors ${isCritical ? 'text-red-400' : 'text-slate-600 group-hover:text-[#D4AF37]'}`} />
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
-            <span className="font-extrabold tracking-tight text-slate-900 text-sm truncate" title={row.mpn}>{row.mpn}</span>
-            <button onClick={handleCopy} className="text-slate-300 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-all focus:outline-none active:scale-90"><Copy className="w-3 h-3" /></button>
-            {copied && <span className="text-[8px] font-bold text-emerald-600 bg-emerald-50 px-1 py-0.5 rounded border border-emerald-100 uppercase tracking-widest animate-in zoom-in duration-200">Copied</span>}
+            <span className="font-extrabold tracking-tight text-white text-sm truncate" title={row.mpn}>{row.mpn}</span>
+            <button onClick={handleCopy} className="text-slate-600 hover:text-[#D4AF37] opacity-0 group-hover:opacity-100 transition-all focus:outline-none active:scale-90"><Copy className="w-3 h-3" /></button>
+            {copied && <span className="text-[8px] font-bold text-emerald-400 bg-emerald-900/20 px-1 py-0.5 rounded border border-emerald-700/40 uppercase tracking-widest animate-in zoom-in duration-200">Copied</span>}
           </div>
-          <span className="bg-slate-100 px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider uppercase text-slate-500 mt-0.5 inline-block">{getCategory(row.mpn)}</span>
+          <span className="bg-slate-800 border border-slate-700 px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider uppercase text-slate-500 mt-0.5 inline-block">{getCategory(row.mpn)}</span>
         </div>
       </div>
-      
-      <div className="w-48 px-4 text-xs font-semibold text-slate-600 truncate" title={row.manufacturer}>{row.manufacturer}</div>
+
+      <div className="w-48 px-4 text-xs font-semibold text-slate-400 truncate" title={row.manufacturer}>{row.manufacturer}</div>
       
       <div className="w-32 px-4 flex justify-end">
         {isEditing ? (
@@ -834,36 +834,36 @@ const BomVirtualRow = memo(({ row, virtualRow, isSelected, onToggleSelect, onMan
               type="number" min="1" value={editQty} 
               onChange={(e) => setEditQty(parseInt(e.target.value, 10) || 1)} 
               onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-              className="w-16 px-2 py-1 text-xs font-bold bg-white border border-blue-300 rounded-md outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm text-center" 
+              className="w-16 px-2 py-1 text-xs font-bold bg-slate-800 border border-[#D4AF37]/50 text-white rounded-md outline-none focus:ring-2 focus:ring-[#D4AF37]/20 shadow-sm text-center"
               autoFocus 
               onBlur={handleSave}
             />
           </div>
         ) : (
-          <button onClick={() => setIsEditing(true)} className="flex items-center justify-end w-full gap-1.5 group/edit hover:bg-slate-100 px-2 py-1 rounded-md transition-colors focus:outline-none">
-            <span className="font-black tracking-tight text-slate-900 text-sm">{row.quantity.toLocaleString()}</span>
-            <Edit2 className="w-3 h-3 text-slate-300 opacity-0 group-hover/edit:opacity-100 hover:text-blue-600 transition-opacity" />
+          <button onClick={() => setIsEditing(true)} className="flex items-center justify-end w-full gap-1.5 group/edit hover:bg-slate-800 px-2 py-1 rounded-md transition-colors focus:outline-none">
+            <span className="font-black tracking-tight text-white text-sm">{row.quantity.toLocaleString()}</span>
+            <Edit2 className="w-3 h-3 text-slate-600 opacity-0 group-hover/edit:opacity-100 hover:text-[#D4AF37] transition-opacity" />
           </button>
         )}
       </div>
 
       <div className="w-36 px-4 flex justify-center">
         {isCritical ? (
-          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-red-200 bg-red-50 text-red-700 text-[9px] font-black uppercase tracking-widest shadow-sm"><AlertTriangle className="w-3 h-3" /> High Risk</span>
+          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-red-700/40 bg-red-900/20 text-red-400 text-[9px] font-black uppercase tracking-widest shadow-sm"><AlertTriangle className="w-3 h-3" /> High Risk</span>
         ) : (
-          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-blue-200/60 bg-blue-50 text-blue-700 text-[9px] font-black uppercase tracking-widest shadow-sm"><Zap className="w-3 h-3" /> Staged</span>
+          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-[#423005]/50 bg-[#D4AF37]/10 text-[#FCD34D] text-[9px] font-black uppercase tracking-widest shadow-sm"><Zap className="w-3 h-3" /> Staged</span>
         )}
       </div>
 
       <div className="w-32 px-4 text-right">
-        <span className="font-black tracking-tight text-sm text-slate-600">{formatCurrency(markedUpPrice)}</span>
+        <span className="font-black tracking-tight text-sm text-white">{formatCurrency(markedUpPrice)}</span>
       </div>
 
       <div className="w-36 px-4 flex items-center justify-end gap-2 pr-6">
         <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
           <button 
             onClick={() => onManageAlternates(row)} 
-            className={`text-[9px] uppercase tracking-widest font-bold px-2.5 py-1.5 rounded-lg border transition-all focus:outline-none shadow-sm active:scale-95 ${hasAlternates ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}
+            className={`text-[9px] uppercase tracking-widest font-bold px-2.5 py-1.5 rounded-lg border transition-all focus:outline-none shadow-sm active:scale-95 ${hasAlternates ? 'bg-[#D4AF37] text-black border-[#D4AF37] hover:bg-[#B48A2D]' : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700 hover:text-white'}`}
           >
             Alts ({row.alternates?.length || 0})
           </button>
