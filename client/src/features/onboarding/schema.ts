@@ -40,7 +40,9 @@ export const loginSchema = z.object({
 // --- NEW: STRICT CSV ROW VALIDATION ---
 // Format must match the backend nexar-proxy regex so rows that pass frontend
 // validation are guaranteed to pass backend validation. Keep these in sync.
-export const MPN_REGEX = /^[A-Z0-9][A-Z0-9\-\/\._]{1,49}$/i;
+// # used by ADI/LTC for package variants (LTC3115#PBF)
+// + used by Maxim/ADI (MAX98357AEWL+T)
+export const MPN_REGEX = /^[A-Z0-9][A-Z0-9\-\/\._#+()]{1,49}$/i;
 export const MAX_BOM_ROWS = 200;
 
 export const csvRowSchema = z.object({
@@ -48,7 +50,7 @@ export const csvRowSchema = z.object({
     .trim()
     .min(2, 'MPN must be at least 2 characters')
     .max(50, 'MPN must be at most 50 characters')
-    .regex(MPN_REGEX, "MPN must start with a letter or digit and use only A-Z, 0-9, '-', '/', '.', '_' (no spaces or special characters)"),
+    .regex(MPN_REGEX, "MPN must start with a letter or digit and use only A-Z, 0-9, '-', '/', '.', '_', '#', '+' (no spaces)"),
   manufacturer: z.string().default('Unknown'),
   quantity: z.number().int().positive('Quantity must be > 0'),
   target_price: z.number().positive().nullable(),

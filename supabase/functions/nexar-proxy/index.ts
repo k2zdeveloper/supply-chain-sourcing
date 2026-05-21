@@ -12,30 +12,12 @@ if (SENTRY_DSN) {
   });
 }
 
-// Format: starts with alphanumeric, then alphanumerics + - / . _, total length 2-50.
-const MPN_REGEX = /^[A-Z0-9][A-Z0-9\-\/\._]{1,49}$/i;
+// Common MPN chars: alphanumeric, - / . _ # + ( )
+// # used by ADI/LTC for package variants (LTC3115#PBF)
+// + used by Maxim/ADI (MAX98357AEWL+T)
+const MPN_REGEX = /^[A-Z0-9][A-Z0-9\-\/\._#+()]{1,49}$/i;
 const MAX_MPNS_PER_REQUEST = 100;
 const MAX_LIFECYCLE_SCAN = 200;
-
-function validateMpnList(input: unknown, max: number): string[] {
-  if (!Array.isArray(input)) throw new Error("Payload 'mpns' must be an array.");
-  if (input.length === 0) throw new Error("Payload 'mpns' cannot be empty.");
-  if (input.length > max) {
-    throw new Error(`Too many MPNs: ${input.length}. Max ${max} per request.`);
-  }
-  const cleaned: string[] = [];
-  for (const raw of input) {
-    if (typeof raw !== 'string') {
-      throw new Error(`Invalid MPN type: expected string, got ${typeof raw}.`);
-    }
-    const trimmed = raw.trim();
-    if (!MPN_REGEX.test(trimmed)) {
-      throw new Error(`Invalid MPN format: "${raw}". Allowed: A-Z, 0-9, '-', '/', '.', '_', length 2-50.`);
-    }
-    cleaned.push(trimmed);
-  }
-  return cleaned;
-}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -80,13 +62,31 @@ serve(async (req) => {
     // 2. Parse Request
     const body = await req.json();
     const { action, mpn, mpns, tenant_id, forceRefresh } = body;
-    const token = await getValidNexarToken();
+
+    // Fetch Nexar token but do NOT hard-fail here — each action decides what to do without it
+    let token = '';
+    let nexarAvailable = true;
+    try {
+      token = await getValidNexarToken();
+    } catch (tokenErr: any) {
+      console.error("[Nexar] Token unavailable:", tokenErr.message);
+      nexarAvailable = false;
+    }
 
     // ========================================================================
     // ACTION 1: BATCHED ALTERNATIVES
     // ========================================================================
     if (action === 'get_batched_alternatives') {
-      const validMpns = validateMpnList(mpns, MAX_MPNS_PER_REQUEST);
+      if (!Array.isArray(mpns) || mpns.length === 0) throw new Error("Payload 'mpns' must be a non-empty array.");
+      const validMpns: string[] = [];
+      for (const raw of mpns) {
+        if (typeof raw === 'string') {
+          const trimmed = raw.trim();
+          if (MPN_REGEX.test(trimmed)) validMpns.push(trimmed);
+        }
+      }
+      if (validMpns.length === 0) throw new Error("No valid MPNs in request.");
+      if (validMpns.length > MAX_MPNS_PER_REQUEST) throw new Error(`Too many MPNs: ${validMpns.length}. Max ${MAX_MPNS_PER_REQUEST}.`);
 
       const { data: cachedRecords } = await supabaseAdmin
         .from('nexar_cache')
@@ -107,58 +107,120 @@ serve(async (req) => {
         }
       }
 
-      const fetchPromises = staleOrMissing.slice(0, 10).map(async (searchMpn) => {
-        const query = `
-          query GetDropInReplacements($mpn: String!) {
-            supSearch(q: $mpn, filters: { inStockOnly: true }, limit: 5) {
-              results { part { mpn manufacturer { name } medianPrice1000 { price } totalAvail } }
+      // Only hit Nexar for stale/missing entries when credentials are available
+      if (nexarAvailable && staleOrMissing.length > 0) {
+        const fetchPromises = staleOrMissing.map(async (searchMpn) => {
+          const q = `
+            query GetDropInReplacements($mpn: String!) {
+              supSearch(q: $mpn, filters: { inStockOnly: true }, limit: 5) {
+                results { part { mpn manufacturer { name } medianPrice1000 { price } totalAvail } }
+              }
             }
+          `;
+          try {
+            const res = await fetch("https://api.nexar.com/graphql", {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ query: q, variables: { mpn: searchMpn } })
+            });
+            const data = await res.json();
+            if (data.errors) return { mpn: searchMpn, data: [] };
+            const formatted = (data.data.supSearch?.results || []).map((r: any) => ({
+              id: crypto.randomUUID(),
+              part_number: r.part.mpn,
+              manufacturer: r.part.manufacturer?.name || 'Unknown',
+              available_qty: r.part.totalAvail || 0,
+              unit_cost: r.part.medianPrice1000?.price || 0
+            }));
+            return { mpn: searchMpn, data: formatted };
+          } catch (e) {
+            return { mpn: searchMpn, data: [] };
           }
-        `;
-        
-        try {
-          const res = await fetch("https://api.nexar.com/graphql", {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query, variables: { mpn: searchMpn } })
-          });
-          
-          const data = await res.json();
-          if (data.errors) return { mpn: searchMpn, data: [] };
-
-          const formatted = (data.data.supSearch?.results || []).map((r: any) => ({
-            id: crypto.randomUUID(), 
-            part_number: r.part.mpn, 
-            manufacturer: r.part.manufacturer?.name || 'Unknown', 
-            available_qty: r.part.totalAvail || 0, 
-            unit_cost: r.part.medianPrice1000?.price || 0
-          }));
-          
-          return { mpn: searchMpn, data: formatted };
-        } catch (e) {
-          return { mpn: searchMpn, data: [] }; 
-        }
-      });
-
-      const newlyFetched = await Promise.all(fetchPromises);
-
-      for (const item of newlyFetched) {
-        validCache.set(item.mpn, item.data);
-        await supabaseAdmin.from('nexar_cache').upsert({
-          mpn: item.mpn, 
-          data: item.data, 
-          last_scanned: new Date().toISOString(), 
-          checksum: btoa(item.mpn) 
         });
+
+        const newlyFetched = await Promise.all(fetchPromises);
+        for (const item of newlyFetched) {
+          validCache.set(item.mpn, item.data);
+          try {
+            await supabaseAdmin.from('nexar_cache').upsert({
+              mpn: item.mpn,
+              data: item.data,
+              last_scanned: new Date().toISOString(),
+              checksum: encodeURIComponent(item.mpn)
+            });
+          } catch (_) { /* cache write failure is non-critical */ }
+        }
       }
 
-      return new Response(JSON.stringify(Object.fromEntries(validCache)), { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      return new Response(JSON.stringify(Object.fromEntries(validCache)), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
     // ========================================================================
-    // ACTION 2: SCAN LIFECYCLE 
+    // ACTION 2: GET SINGLE-MPN ALTERNATIVES (used by SmartResolutionModal)
+    // ========================================================================
+    if (action === 'get_alternatives') {
+      if (!mpn || typeof mpn !== 'string') throw new Error("MPN is required.");
+      const cleanMpn = mpn.trim();
+      if (!MPN_REGEX.test(cleanMpn)) {
+        console.warn(`[Nexar] Unrecognised MPN format skipped: "${mpn}"`);
+        return new Response(JSON.stringify([]), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      // Always serve from cache first — no Nexar token needed for a cache hit
+      const { data: cached } = await supabaseAdmin
+        .from('nexar_cache')
+        .select('data, last_scanned')
+        .eq('mpn', cleanMpn)
+        .maybeSingle();
+
+      if (cached && (Date.now() - new Date(cached.last_scanned).getTime() < 7 * 24 * 60 * 60 * 1000)) {
+        return new Response(JSON.stringify(cached.data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      // No cache hit — need Nexar
+      if (!nexarAvailable) {
+        return new Response(JSON.stringify([]), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      const altQuery = `
+        query GetDropInReplacements($mpn: String!) {
+          supSearch(q: $mpn, filters: { inStockOnly: true }, limit: 5) {
+            results { part { mpn manufacturer { name } medianPrice1000 { price } totalAvail } }
+          }
+        }
+      `;
+
+      const altRes = await fetch("https://api.nexar.com/graphql", {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: altQuery, variables: { mpn: cleanMpn } }),
+      });
+
+      const altData = await altRes.json();
+      if (altData.errors) throw new Error(altData.errors[0].message);
+
+      const formatted = (altData.data?.supSearch?.results || []).map((r: any) => ({
+        id: crypto.randomUUID(),
+        part_number: r.part.mpn,
+        manufacturer: r.part.manufacturer?.name || 'Unknown',
+        available_qty: r.part.totalAvail || 0,
+        unit_cost: r.part.medianPrice1000?.price || 0,
+      }));
+
+      await supabaseAdmin.from('nexar_cache').upsert({
+        mpn: cleanMpn,
+        data: formatted,
+        last_scanned: new Date().toISOString(),
+        checksum: encodeURIComponent(cleanMpn),
+      });
+
+      return new Response(JSON.stringify(formatted), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // ========================================================================
+    // ACTION 3: SCAN LIFECYCLE
     // ========================================================================
     if (action === 'scan_lifecycle') {
       if (!tenant_id || typeof tenant_id !== 'string') throw new Error("Tenant ID is required.");
@@ -171,15 +233,20 @@ serve(async (req) => {
 
       if (dbError) throw dbError;
       if (!bomRecords || bomRecords.length === 0) {
-         return new Response(JSON.stringify([]), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify([]), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
-      // Filter out any historical garbage MPNs before hitting Nexar — protects quota.
+      // If Nexar is unavailable, return the raw DB records so the frontend
+      // still shows whatever lifecycle_status / risk_level is stored there
+      if (!nexarAvailable) {
+        return new Response(JSON.stringify(bomRecords), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
       const sanitizedRecords = bomRecords.filter(
         (r: any) => typeof r.mpn === 'string' && MPN_REGEX.test(r.mpn.trim())
       );
       if (sanitizedRecords.length === 0) {
-        return new Response(JSON.stringify([]), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify(bomRecords), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
       const queries = sanitizedRecords.map((record: any) => ({ mpn: record.mpn.trim() }));
@@ -192,27 +259,35 @@ serve(async (req) => {
         }
       `;
 
-      const nexarRes = await fetch("https://api.nexar.com/graphql", {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, variables: { queries } }),
-      });
+      let nexarParts: any[] = [];
+      try {
+        const nexarRes = await fetch("https://api.nexar.com/graphql", {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query, variables: { queries } }),
+        });
+        const nexarData = await nexarRes.json();
+        if (!nexarData.errors) {
+          nexarParts = nexarData.data?.supMultiMatch?.parts || [];
+        }
+      } catch (e) {
+        console.error("[Nexar] Lifecycle fetch failed, using DB values:", e);
+      }
 
-      const nexarData = await nexarRes.json();
-      if (nexarData.errors) throw new Error(nexarData.errors[0].message);
-
-      const nexarParts = nexarData.data.supMultiMatch?.parts || [];
-      const riskMap = new Map(nexarParts.map((p: any) => [p.mpn, p.lifecycleStatus]));
+      const riskMap = new Map(nexarParts.map((p: any) => [String(p.mpn || '').toUpperCase(), p.lifecycleStatus]));
 
       const evaluatedRecords = bomRecords.map((record: any) => {
-        const nexarStatus = riskMap.get(record.mpn) || 'Production';
+        const nexarStatus = riskMap.get(String(record.mpn || '').toUpperCase().trim());
+        if (!nexarStatus) return record;
+
+        const upperStatus = nexarStatus.toUpperCase();
         let calculatedRisk = 'low';
         let formattedStatus = 'Active';
 
-        if (['Obsolete', 'EOL'].includes(nexarStatus)) {
+        if (['OBSOLETE', 'EOL', 'DISCONTINUED', 'LAST_TIME_BUY'].includes(upperStatus)) {
           calculatedRisk = 'critical';
-          formattedStatus = 'Obsolete';
-        } else if (nexarStatus === 'NRND') {
+          formattedStatus = upperStatus === 'LAST_TIME_BUY' ? 'Last-Time-Buy' : 'Obsolete';
+        } else if (['NRND', 'NOT_FOR_NEW_DESIGNS'].includes(upperStatus)) {
           calculatedRisk = 'high';
           formattedStatus = 'NRND';
         }

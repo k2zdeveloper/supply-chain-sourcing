@@ -306,17 +306,28 @@ export const rejectQuote = async (quoteId: string): Promise<void> => {
 
 export const fetchLifecycleIntelligence = async (tenantId: string | undefined) => {
   if (!tenantId) return [];
-  
-  const { data, error } = await supabase.functions.invoke('nexar-proxy', {
-    body: { action: 'scan_lifecycle', tenant_id: tenantId }
-  });
 
-  if (error) {
-    console.error("[Nexar Proxy Error] fetchLifecycleIntelligence:", error);
-    throw new Error(`Failed to reach supply chain intelligence: ${error.message}`);
+  try {
+    const { data, error } = await supabase.functions.invoke('nexar-proxy', {
+      body: { action: 'scan_lifecycle', tenant_id: tenantId }
+    });
+
+    if (!error && Array.isArray(data) && data.length > 0) return data;
+    if (error) console.warn('[Lifecycle] Nexar proxy error, falling back to DB:', error.message);
+  } catch (e) {
+    console.warn('[Lifecycle] Nexar proxy unreachable, falling back to DB:', e);
   }
-  
-  return data;
+
+  // Fallback: read lifecycle data directly from bom_records so the UI always
+  // reflects whatever risk/lifecycle values are stored in the database.
+  const { data: bomRecords, error: dbError } = await supabase
+    .from('bom_records')
+    .select('*, workspace:workspaces(name)')
+    .eq('tenant_id', tenantId)
+    .order('created_at', { ascending: false });
+
+  if (dbError) throw new Error(`Failed to fetch lifecycle data: ${dbError.message}`);
+  return bomRecords || [];
 };
 
 export const fetchCrossReferences = async (mpn: string) => {
@@ -342,8 +353,9 @@ export const fetchBatchedAlternatives = async (mpns: string[], forceRefresh: boo
   });
 
   if (error) {
-    console.error("[Nexar Proxy Error] fetchBatchedAlternatives:", error);
-    throw new Error(`Failed to batch fetch alternatives: ${error.message}`);
+    // Degrade gracefully — callers treat {} as "no alternatives", no error state
+    console.warn("[Nexar] fetchBatchedAlternatives unavailable:", error.message);
+    return {};
   }
 
   return data; 

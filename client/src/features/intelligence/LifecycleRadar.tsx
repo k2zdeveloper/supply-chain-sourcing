@@ -1,15 +1,14 @@
-import React, { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  Activity, ShieldAlert, AlertTriangle, Cpu, Loader2, 
-  RefreshCcw, Radar, ShieldCheck, FileText, 
+import {
+  Activity, ShieldAlert, AlertTriangle, Loader2,
+  RefreshCcw, Radar, ShieldCheck, FileText,
   Zap, CheckCircle2, X, Search, Filter, ArrowDownUp,
   EyeOff, Copy, ArrowRight, Package, Clock, Check
 } from 'lucide-react';
 
 import { useAuthStore } from '@/stores/useAuthStore';
-import { fetchLifecycleIntelligence, fetchCrossReferences, globalSwapComponent } from '@/features/bom/api';
+import { fetchLifecycleIntelligence, fetchCrossReferences, globalSwapComponent, fetchBatchedAlternatives } from '@/features/bom/api';
 import type { BomRecord } from '@/features/bom/types';
 import { formatCurrency } from '@/features/bom/utils';
 
@@ -18,7 +17,6 @@ import { formatCurrency } from '@/features/bom/utils';
 // ============================================================================
 type WorkspaceRelation = { name: string };
 
-// ⚡ FIX: Extended the type so TypeScript knows about target_price and stock
 type IntelligenceRecord = BomRecord & { 
   workspace: WorkspaceRelation | WorkspaceRelation[] | null;
   target_price?: number | null;
@@ -82,11 +80,35 @@ export default function LifecycleRadar() {
   const [isAnimating, setIsAnimating] = useState(false);
 
   // --- Real Database Sourcing ---
-  const { data: rawParts = [], isLoading, refetch } = useQuery<IntelligenceRecord[], Error>({
+  const { data: rawParts = [], isLoading, isError, error: queryError, refetch } = useQuery<IntelligenceRecord[], Error>({
     queryKey: ['lifecycle_intelligence', user?.id],
     queryFn: () => fetchLifecycleIntelligence(user?.id) as Promise<IntelligenceRecord[]>,
     enabled: !!user?.id,
-    staleTime: 1000 * 60 * 5, 
+    staleTime: 1000 * 60 * 5,
+  });
+
+  // Pre-fetch alternatives for risky parts only so recommendations show inline
+  const riskyMpns = useMemo(() =>
+    rawParts
+      .filter(p => /obsolete|eol|nrnd/i.test(p.lifecycle_status || '') || /critical|high/i.test(p.risk_level || ''))
+      .map(p => p.mpn),
+    [rawParts]
+  );
+
+  const { data: batchedAlts = {}, isLoading: isAltsLoading } = useQuery<Record<string, any[]>>({
+    queryKey: ['lifecycle_alts', riskyMpns],
+    queryFn: () => fetchBatchedAlternatives(riskyMpns, false),
+    enabled: riskyMpns.length > 0,
+    staleTime: 1000 * 60 * 30,
+  });
+
+  const { mutate: quickSwap, isPending: isSwapping } = useMutation({
+    mutationFn: (args: { part: IntelligenceRecord; newPart: any }) =>
+      globalSwapComponent(user!.id, args.part.mpn, args.newPart.part_number, args.newPart.manufacturer, args.newPart.available_qty || 0),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lifecycle_intelligence'] });
+      queryClient.invalidateQueries({ queryKey: ['lifecycle_alts'] });
+    },
   });
 
   const handleRescan = () => {
@@ -106,7 +128,8 @@ export default function LifecycleRadar() {
     let result = rawParts.filter(p => !ignoredParts.has(p.id));
 
     if (criticalOnly) {
-      result = result.filter(p => p.risk_level === 'critical');
+      // ⚡ FIX: Case-insensitive check for critical risk
+      result = result.filter(p => /critical/i.test(p.risk_level || ''));
     }
 
     if (searchQuery.trim()) {
@@ -121,11 +144,11 @@ export default function LifecycleRadar() {
     result.sort((a, b) => {
       switch (sortBy) {
         case 'RISK_DESC':
-          const riskA = a.risk_level === 'critical' ? 3 : a.risk_level === 'high' ? 2 : 1;
-          const riskB = b.risk_level === 'critical' ? 3 : b.risk_level === 'high' ? 2 : 1;
+          const riskA = /critical/i.test(a.risk_level || '') ? 3 : /high/i.test(a.risk_level || '') ? 2 : 1;
+          const riskB = /critical/i.test(b.risk_level || '') ? 3 : /high/i.test(b.risk_level || '') ? 2 : 1;
           return riskB - riskA;
         case 'MPN_ASC': return a.mpn.localeCompare(b.mpn);
-        case 'STATUS': return a.lifecycle_status.localeCompare(b.lifecycle_status);
+        case 'STATUS': return (a.lifecycle_status || '').localeCompare(b.lifecycle_status || '');
         default: return 0;
       }
     });
@@ -137,9 +160,14 @@ export default function LifecycleRadar() {
   const metrics = useMemo(() => {
     if (!rawParts.length) return { obsolete: 0, nrnd: 0, criticalRisk: 0, affectedProjects: 0, healthScore: 100 };
     
-    const obsolete = rawParts.filter(p => p.lifecycle_status === 'Obsolete' || p.lifecycle_status === 'EOL').length;
-    const nrnd = rawParts.filter(p => p.lifecycle_status === 'NRND').length;
-    const criticalRisk = rawParts.filter(p => p.risk_level === 'critical').length;
+    // ⚡ FIX: Case-insensitive regex helpers to handle API inconsistencies
+    const isDead = (s?: string) => /obsolete|eol|end of life/i.test(s || '');
+    const isWarning = (s?: string) => /nrnd|not recommended/i.test(s || '');
+    const isCritical = (r?: string) => /critical/i.test(r || '');
+
+    const obsolete = rawParts.filter(p => isDead(p.lifecycle_status)).length;
+    const nrnd = rawParts.filter(p => isWarning(p.lifecycle_status)).length;
+    const criticalRisk = rawParts.filter(p => isCritical(p.risk_level)).length;
     const uniqueProjects = new Set(rawParts.map(p => p.workspace_id));
     
     const penalty = (obsolete * 5) + (nrnd * 2) + (criticalRisk * 3);
@@ -163,7 +191,15 @@ export default function LifecycleRadar() {
 
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-[1400px] mx-auto font-sans text-slate-900 pb-24 relative flex flex-col h-full min-h-[calc(100vh-4rem)] animate-in fade-in duration-500 overflow-hidden">
-      
+
+      {/* NEXAR FALLBACK BANNER */}
+      {isError && (
+        <div className="mb-4 flex items-center gap-3 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl text-xs font-semibold shrink-0">
+          <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500" />
+          <span>Live Nexar scan unavailable — showing stored risk data from your database. <span className="font-normal opacity-70">({queryError?.message})</span></span>
+        </div>
+      )}
+
       {/* SMART RESOLUTION MODAL */}
       {resolvingPart && (
         <SmartResolutionModal 
@@ -286,18 +322,30 @@ export default function LifecycleRadar() {
             <table className="w-full text-left text-xs whitespace-nowrap min-w-[900px]">
               <thead className="bg-slate-50/90 text-slate-400 text-[9px] uppercase tracking-widest sticky top-0 border-b border-slate-200/80 font-bold z-10 backdrop-blur-xl">
                 <tr>
-                  <th className="px-5 py-4 pl-6 w-[30%]">Component Info</th>
+                  <th className="px-5 py-4 pl-6 w-[22%]">Component Info</th>
                   <th className="px-5 py-4">Lifecycle Status</th>
-                  <th className="px-5 py-4 w-40 text-center">Risk Analysis</th>
-                  <th className="px-5 py-4">Affected Project</th>
+                  <th className="px-5 py-4 w-36 text-center">Risk</th>
+                  <th className="px-5 py-4">Project</th>
+                  <th className="px-5 py-4">Recommendation</th>
                   <th className="px-5 py-4 text-right pr-6">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
                 {displayList.map((part, index) => {
-                  const isDead = part.lifecycle_status === 'Obsolete' || part.lifecycle_status === 'EOL';
-                  const isWarning = part.lifecycle_status === 'NRND';
+                  const isDead = /obsolete|eol|end of life/i.test(part.lifecycle_status || '');
+                  const isWarning = /nrnd|not recommended/i.test(part.lifecycle_status || '');
+                  const isCritical = /critical/i.test(part.risk_level || '');
+                  const isHighRisk = /high/i.test(part.risk_level || '');
                   const isAck = acknowledgedParts.has(part.id);
+                  const isRisky = isDead || isWarning || isCritical || isHighRisk;
+
+                  // Best in-stock alternative for this part (pre-fetched from Nexar)
+                  const partAlts: any[] = batchedAlts[part.mpn] || [];
+                  const bestAlt = isRisky && partAlts.length > 0
+                    ? [...partAlts]
+                        .filter(a => Number(a.available_qty) > 0)
+                        .sort((a, b) => Number(b.available_qty) - Number(a.available_qty))[0] ?? null
+                    : null;
 
                   return (
                     <tr 
@@ -329,12 +377,12 @@ export default function LifecycleRadar() {
                       </td>
                       <td className="px-5 py-3.5">
                         <div className="flex justify-center w-full">
-                          {part.risk_level === 'critical' ? (
+                          {isCritical ? (
                             <div className="w-full max-w-[100px]">
                               <span className="text-[9px] font-black text-red-600 uppercase tracking-widest flex items-center gap-1.5 mb-1.5"><div className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse"/> Critical</span>
                               <div className="w-full bg-slate-100 rounded-full h-1 overflow-hidden"><div className="bg-gradient-to-r from-red-400 to-red-600 h-full rounded-full w-[90%]"></div></div>
                             </div>
-                          ) : part.risk_level === 'high' ? (
+                          ) : isHighRisk ? (
                             <div className="w-full max-w-[100px]">
                               <span className="text-[9px] font-black text-orange-600 uppercase tracking-widest flex items-center gap-1.5 mb-1.5"><div className="w-1.5 h-1.5 rounded-full bg-orange-500"/> High</span>
                               <div className="w-full bg-slate-100 rounded-full h-1 overflow-hidden"><div className="bg-orange-500 h-full rounded-full w-[60%]"></div></div>
@@ -355,16 +403,63 @@ export default function LifecycleRadar() {
                           <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest ml-1">Impacted</span>
                         </div>
                       </td>
+                      {/* RECOMMENDATION COLUMN */}
+                      <td className="px-5 py-3.5">
+                        {isRisky && (
+                          isAltsLoading ? (
+                            <div className="flex items-center gap-1.5 text-slate-400">
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                              <span className="text-[9px] font-bold uppercase tracking-widest">Scanning…</span>
+                            </div>
+                          ) : bestAlt ? (
+                            <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-100 rounded-lg px-2.5 py-1.5 max-w-[200px]">
+                              <BrandLogo name={bestAlt.manufacturer} />
+                              <div className="min-w-0">
+                                <p className="text-[10px] font-extrabold text-slate-900 truncate" title={bestAlt.part_number}>{bestAlt.part_number}</p>
+                                <p className="text-[9px] text-emerald-700 font-bold flex items-center gap-1">
+                                  <Package className="w-2.5 h-2.5" />
+                                  {Number(bestAlt.available_qty).toLocaleString()} in stock
+                                </p>
+                                {Number(bestAlt.unit_cost) > 0 && (
+                                  <p className="text-[9px] text-slate-500 font-medium">{formatCurrency(Number(bestAlt.unit_cost))}/unit</p>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-[9px] text-slate-400 font-medium italic">No match found</span>
+                          )
+                        )}
+                      </td>
+
+                      {/* ACTIONS COLUMN */}
                       <td className="px-5 py-3.5 text-right pr-6">
                         <div className="flex items-center justify-end gap-2">
                           <button onClick={() => setIgnoredParts(prev => new Set(prev).add(part.id))} className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md opacity-0 group-hover:opacity-100 transition-all focus:outline-none" title="Ignore this alert"><EyeOff className="w-3.5 h-3.5"/></button>
-                          
+
                           {isAck ? (
                             <button onClick={() => { const newSet = new Set(acknowledgedParts); newSet.delete(part.id); setAcknowledgedParts(newSet); }} className="bg-slate-100 hover:bg-slate-200 text-slate-500 px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 transition-colors focus:outline-none">Acknowledged <Check className="w-3 h-3"/></button>
+                          ) : bestAlt ? (
+                            <div className="flex items-center gap-1.5">
+                              <button onClick={() => setAcknowledgedParts(prev => new Set(prev).add(part.id))} className="text-[9px] font-bold text-slate-400 hover:text-slate-600 uppercase tracking-widest px-1.5 py-1 transition-colors focus:outline-none opacity-0 group-hover:opacity-100">Ack</button>
+                              <button
+                                onClick={() => setResolvingPart(part)}
+                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all focus:outline-none opacity-0 group-hover:opacity-100"
+                                title="View all alternatives"
+                              >
+                                <Search className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => quickSwap({ part, newPart: bestAlt })}
+                                disabled={isSwapping}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all inline-flex items-center gap-1.5 focus:outline-none focus:ring-4 focus:ring-emerald-500/20 shadow-sm active:scale-95 disabled:opacity-50"
+                              >
+                                Swap <ArrowRight className="w-3 h-3" />
+                              </button>
+                            </div>
                           ) : (
                             <div className="flex items-center gap-1.5">
                               <button onClick={() => setAcknowledgedParts(prev => new Set(prev).add(part.id))} className="text-[9px] font-bold text-slate-400 hover:text-slate-600 uppercase tracking-widest px-1.5 py-1 transition-colors focus:outline-none opacity-0 group-hover:opacity-100">Ack Risk</button>
-                              <button 
+                              <button
                                 onClick={() => setResolvingPart(part)}
                                 className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all inline-flex items-center gap-1.5 focus:outline-none focus:ring-4 focus:ring-blue-500/20 shadow-sm active:scale-95"
                               >
@@ -393,7 +488,7 @@ const SmartResolutionModal = ({ part, onClose, onSuccess }: { part: Intelligence
   const { user } = useAuthStore();
   const [copiedMpn, setCopiedMpn] = useState(false);
 
-  const { data: crossRefs = [], isLoading } = useQuery({
+  const { data: crossRefs = [], isLoading, isError: isCrossRefError, error: crossRefError } = useQuery({
     queryKey: ['cross_refs', part.mpn],
     queryFn: () => fetchCrossReferences(part.mpn),
   });
@@ -434,6 +529,12 @@ const SmartResolutionModal = ({ part, onClose, onSuccess }: { part: Intelligence
             <div className="flex flex-col items-center justify-center py-16 text-slate-400 bg-white rounded-2xl border border-dashed border-slate-200 shadow-sm">
               <Loader2 className="w-6 h-6 animate-spin mb-3 text-blue-500" />
               <p className="text-[10px] font-bold uppercase tracking-widest animate-pulse">Searching Inventory...</p>
+            </div>
+          ) : isCrossRefError ? (
+            <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-amber-200 shadow-sm px-5">
+              <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3 border border-amber-100"><AlertTriangle className="w-6 h-6 text-amber-500" /></div>
+              <p className="text-base font-bold text-slate-900 mb-1">Nexar scan failed.</p>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">{(crossRefError as Error)?.message || 'Unknown error'}. Deploy the edge function and try again.</p>
             </div>
           ) : crossRefs.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-slate-200 shadow-sm px-5">
