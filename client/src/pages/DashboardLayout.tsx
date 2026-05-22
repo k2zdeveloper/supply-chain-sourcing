@@ -76,7 +76,7 @@ export default function DashboardLayout() {
     <nav className={`flex-1 overflow-y-auto custom-scrollbar py-5 space-y-6 ${collapsed ? 'px-2' : 'px-3'}`}>
       {navigationGroups.map((group) => (
         <div key={group.title} className="space-y-1.5">
-          <h3 className={`${collapsed ? 'sr-only' : 'px-2.5 text-[10px] font-black text-amber-500/80 uppercase tracking-[0.2em] mb-2 font-mono'}`}>
+          <h3 className={`${collapsed ? 'sr-only' : 'px-2.5 text-[10px] font-black text-[#D4AF37]/80 uppercase tracking-[0.2em] mb-2 font-mono'}`}>
             {group.title}
           </h3>
           <ul className="space-y-1">
@@ -87,10 +87,10 @@ export default function DashboardLayout() {
                   end={item.path === '/dashboard'}
                   title={collapsed ? item.name : undefined}
                   className={({ isActive }) =>
-                    `group flex items-center ${collapsed ? 'justify-center p-3' : 'justify-between px-2.5 py-2'} rounded-xl text-xs font-bold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 ${
-                      isActive 
-                        ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-black shadow-lg shadow-amber-500/10' 
-                        : 'text-slate-400 hover:bg-slate-900 hover:text-amber-400'
+                    `group flex items-center ${collapsed ? 'justify-center p-3' : 'justify-between px-2.5 py-2'} rounded-xl text-xs font-bold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/20 ${
+                      isActive
+                        ? 'bg-[#D4AF37] text-black shadow-lg shadow-[#D4AF37]/20'
+                        : 'text-slate-400 hover:bg-slate-800 hover:text-[#FCD34D]'
                     }`
                   }
                 >
@@ -99,7 +99,7 @@ export default function DashboardLayout() {
                       <div className={`flex items-center ${collapsed ? 'justify-center w-full' : 'gap-2.5'}`}>
                         <item.icon 
                           className={`${collapsed ? 'w-5 h-5' : 'w-4 h-4'} transition-colors duration-200 ${
-                            isActive ? 'text-black' : 'text-slate-500 group-hover:text-amber-400'
+                            isActive ? 'text-black' : 'text-slate-500 group-hover:text-[#FCD34D]'
                           }`} 
                         />
                         {!collapsed && <span>{item.name}</span>}
@@ -108,7 +108,7 @@ export default function DashboardLayout() {
                         <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md transition-colors ${
                           isActive 
                             ? 'bg-black/20 text-black' 
-                            : 'bg-amber-500/10 text-amber-400 group-hover:bg-amber-500/20'
+                            : 'bg-[#D4AF37]/10 text-[#FCD34D] group-hover:bg-[#D4AF37]/20'
                         }`}>
                           {item.badge}
                         </span>
@@ -125,18 +125,18 @@ export default function DashboardLayout() {
   );
 
   return (
-    <div className="h-screen w-full bg-[#030712] flex overflow-hidden font-sans text-slate-100 antialiased selection:bg-amber-500 selection:text-black">
+    <div className="h-screen w-full bg-[#020617] flex overflow-hidden font-sans text-slate-100 antialiased selection:bg-[#D4AF37] selection:text-black">
       
       {/* =========================================================================
           DESKTOP COLLAPSIBLE SIDEBAR
       ========================================================================= */}
-      <aside 
-        className={`hidden lg:flex flex-col bg-[#070a13] border-r border-slate-900 z-20 shrink-0 transition-all duration-300 ease-in-out ${
+      <aside
+        className={`hidden lg:flex flex-col bg-slate-900 border-r border-slate-700/60 z-20 shrink-0 transition-all duration-300 ease-in-out ${
           isSidebarCollapsed ? 'w-[80px]' : 'w-[240px]'
         }`}
       >
         {/* Header / Logo Area */}
-        <div className={` h-14 flex items-center border-b border-slate-900 shrink-0 transition-all duration-300 ${isSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-4'}`}>
+        <div className={`h-14 flex items-center border-b border-slate-700/60 shrink-0 transition-all duration-300 ${isSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-4'}`}>
           {!isSidebarCollapsed && (
             <div className="flex flex-col animate-in fade-in duration-300 pl-1">
               <div className="flex items-center gap-2 mb-[-10px]">
@@ -150,7 +150,7 @@ export default function DashboardLayout() {
           )}
           <button 
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} 
-            className={`p-1.5 text-slate-500 hover:bg-slate-900 hover:text-amber-400 rounded-lg transition-colors focus:outline-none ${isSidebarCollapsed ? '' : '-mr-1'}`}
+            className={`p-1.5 text-slate-500 hover:bg-slate-800 hover:text-[#FCD34D] rounded-lg transition-colors focus:outline-none ${isSidebarCollapsed ? '' : '-mr-1'}`}
             title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
             {isSidebarCollapsed ? <Menu className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
@@ -161,10 +161,10 @@ export default function DashboardLayout() {
         <NavigationTree collapsed={isSidebarCollapsed} />
 
         {/* User Profile Footer */}
-        <div className="p-3 shrink-0 mt-auto border-t border-slate-900 bg-[#04070f]">
+        <div className="p-3 shrink-0 mt-auto border-t border-slate-700/60 bg-slate-900/80">
           {isSidebarCollapsed ? (
             <div className="flex flex-col items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-800 text-amber-400 flex items-center justify-center text-sm font-bold shadow-sm" title={user?.email || 'User'}>
+              <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 text-[#FCD34D] flex items-center justify-center text-sm font-bold shadow-sm" title={user?.email || 'User'}>
                 {user?.email?.charAt(0).toUpperCase() || 'U'}
               </div>
               <button 
@@ -176,21 +176,21 @@ export default function DashboardLayout() {
               </button>
             </div>
           ) : (
-            <div className="bg-[#070a13] border border-slate-900 rounded-xl p-1.5 flex flex-col gap-1 shadow-sm">
+            <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-1.5 flex flex-col gap-1 shadow-sm">
               <div className="flex items-center gap-2.5 px-2 py-1.5">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-800 text-amber-400 flex items-center justify-center text-xs font-bold shadow-sm shrink-0">
+                <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 text-[#FCD34D] flex items-center justify-center text-xs font-bold shadow-sm shrink-0">
                   {user?.email?.charAt(0).toUpperCase() || 'U'}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-bold text-slate-200 truncate">{user?.email || 'User Account'}</p>
-                  <p className="text-[10px] font-medium text-amber-300/80 font-mono truncate">Pro Workspace</p>
+                  <p className="text-[10px] font-medium text-[#FCD34D]/80 font-mono truncate">Pro Workspace</p>
                 </div>
               </div>
               
-              <div className="flex items-center gap-1 mt-1 pt-1 border-t border-slate-900">
-                <NavLink 
-                  to="/dashboard/settings" 
-                  className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-[11px] font-bold text-slate-400 hover:text-amber-400 hover:bg-slate-900 rounded-lg transition-colors focus:outline-none"
+              <div className="flex items-center gap-1 mt-1 pt-1 border-t border-slate-700/60">
+                <NavLink
+                  to="/dashboard/settings"
+                  className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-[11px] font-bold text-slate-400 hover:text-[#FCD34D] hover:bg-slate-800 rounded-lg transition-colors focus:outline-none"
                 >
                   <Settings className="w-3.5 h-3.5" /> Settings
                 </NavLink>
@@ -210,7 +210,7 @@ export default function DashboardLayout() {
       {/* =========================================================================
           MOBILE RESPONSIVE HEADER & DRAWER
       ========================================================================= */}
-      <header className="lg:hidden absolute top-0 left-0 right-0 h-14 bg-[#070a13]/90 backdrop-blur-md border-b border-slate-900 flex items-center justify-between px-4 z-40">
+      <header className="lg:hidden absolute top-0 left-0 right-0 h-14 bg-slate-900/90 backdrop-blur-md border-b border-slate-700/60 flex items-center justify-between px-4 z-40">
         <div className="flex flex-col">
           <div className="flex items-center gap-2">
             <div className="w-5 h-5 text-[#FCD34D] rounded flex items-center justify-center">
@@ -219,9 +219,9 @@ export default function DashboardLayout() {
             <span className="text-xs font-black uppercase tracking-widest text-white">Engineering</span>
           </div>
         </div>
-        <button 
-          onClick={() => setIsMobileMenuOpen(true)} 
-          className="p-1.5 text-slate-400 hover:bg-slate-900 rounded-lg transition-colors focus:outline-none"
+        <button
+          onClick={() => setIsMobileMenuOpen(true)}
+          className="p-1.5 text-slate-400 hover:bg-slate-800 rounded-lg transition-colors focus:outline-none"
         >
           <Menu className="w-5 h-5" />
         </button>
@@ -233,10 +233,10 @@ export default function DashboardLayout() {
       )}
 
       {/* Mobile Drawer */}
-      <div className={`fixed inset-y-0 right-0 w-[85vw] max-w-[280px] bg-[#070a13] border-l border-slate-900 shadow-2xl z-50 lg:hidden transform transition-transform duration-300 cubic-bezier(0.16, 1, 0.3, 1) flex flex-col ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-        <div className="h-14 flex items-center justify-between px-5 border-b border-slate-900 shrink-0">
-          <span className="text-xs font-black text-amber-500 uppercase tracking-widest font-mono">Menu</span>
-          <button onClick={() => setIsMobileMenuOpen(false)} className="p-1.5 text-slate-500 hover:bg-slate-900 hover:text-white rounded-lg transition-colors focus:outline-none">
+      <div className={`fixed inset-y-0 right-0 w-[85vw] max-w-[280px] bg-slate-900 border-l border-slate-700/60 shadow-2xl z-50 lg:hidden transform transition-transform duration-300 cubic-bezier(0.16, 1, 0.3, 1) flex flex-col ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className="h-14 flex items-center justify-between px-5 border-b border-slate-700/60 shrink-0">
+          <span className="text-xs font-black text-[#D4AF37] uppercase tracking-widest font-mono">Menu</span>
+          <button onClick={() => setIsMobileMenuOpen(false)} className="p-1.5 text-slate-500 hover:bg-slate-800 hover:text-white rounded-lg transition-colors focus:outline-none">
             <X className="w-5 h-5" />
           </button>
         </div>
